@@ -1,8 +1,7 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { extractTextFromResume } from '../services/resumeParser';
-import Button from './ui/Button';
 import Card from './ui/Card';
 import { formatDate } from '../utils/dateFormatters';
 import BackButton from './ui/BackButton';
@@ -15,7 +14,6 @@ export default function ResumeDeck() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [viewingResume, setViewingResume] = useState(null);
-  const fileInputRef = useRef(null);
   const sortedResumes = useMemo(
     () => [...resumes].sort((a, b) => b.uploadedAt - a.uploadedAt),
     [resumes]
@@ -48,9 +46,7 @@ export default function ResumeDeck() {
       setError(err.message || 'Failed to process resume');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      e.target.value = '';
     }
   };
 
@@ -70,19 +66,20 @@ export default function ResumeDeck() {
           </div>
           <div>
             <input
-              ref={fileInputRef}
+              id="resume-deck-upload"
               type="file"
               accept=".pdf,.docx"
               onChange={handleFileUpload}
+              disabled={uploading || resumes.length >= maxResumes}
               className="hidden"
             />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || resumes.length >= maxResumes}
+            <label
+              htmlFor="resume-deck-upload"
+              className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-primary text-white hover:bg-blue-700 shadow-md hover:shadow-lg cursor-pointer ${uploading || resumes.length >= maxResumes ? 'opacity-50 pointer-events-none' : ''}`}
             >
-              <ArrowUpTrayIcon className="w-5 h-5 mr-2 inline" />
+              <ArrowUpTrayIcon className="w-5 h-5 mr-2" />
               {uploading ? 'Uploading...' : 'Upload Resume'}
-            </Button>
+            </label>
           </div>
         </div>
 
@@ -99,10 +96,13 @@ export default function ResumeDeck() {
             <p className="text-gray-600 mb-4">
               Upload your first resume to get started
             </p>
-            <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-              <ArrowUpTrayIcon className="w-5 h-5 mr-2 inline" />
+            <label
+              htmlFor="resume-deck-upload"
+              className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 bg-primary text-white hover:bg-blue-700 shadow-md hover:shadow-lg cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <ArrowUpTrayIcon className="w-5 h-5 mr-2" />
               {uploading ? 'Uploading...' : 'Upload Resume'}
-            </Button>
+            </label>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
