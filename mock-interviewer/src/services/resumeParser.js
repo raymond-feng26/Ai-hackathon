@@ -2,10 +2,10 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Configure PDF.js worker
-const PDFJS_VERSION = pdfjsLib.version;
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
+// Configure PDF.js worker - use local bundle instead of CDN for mobile compatibility
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 export async function extractTextFromResume(file) {
   const fileName = file.name.toLowerCase();
