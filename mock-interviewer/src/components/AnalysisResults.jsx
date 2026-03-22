@@ -4,7 +4,7 @@ import { useInterview } from '../context/InterviewContext';
 import { getScoreColor } from '../utils/scoring';
 import Button from './ui/Button';
 import Card from './ui/Card';
-import { CheckIcon, LightBulbIcon, PencilSquareIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, LightBulbIcon, PencilSquareIcon, ArrowRightIcon, HomeIcon } from '@heroicons/react/24/outline';
 
 export default function AnalysisResults() {
   const navigate = useNavigate();
@@ -130,6 +130,10 @@ export default function AnalysisResults() {
         )}
 
         <div className="flex gap-4 justify-center">
+          <Button variant="outline" onClick={() => navigate('/')}>
+            <HomeIcon className="w-4 h-4 mr-1 inline" />
+            Home
+          </Button>
           <Button variant="outline" onClick={() => navigate('/upload')}>
             Try Another
           </Button>

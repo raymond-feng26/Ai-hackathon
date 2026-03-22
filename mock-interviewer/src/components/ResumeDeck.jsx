@@ -7,13 +7,14 @@ import Card from './ui/Card';
 import { formatDate } from '../utils/dateFormatters';
 import BackButton from './ui/BackButton';
 import ErrorAlert from './ui/ErrorAlert';
-import { DocumentTextIcon, TrashIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, TrashIcon, ArrowUpTrayIcon, EyeIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function ResumeDeck() {
   const navigate = useNavigate();
   const { resumes, addResume, deleteResume, maxResumes } = useApp();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [viewingResume, setViewingResume] = useState(null);
   const fileInputRef = useRef(null);
   const sortedResumes = useMemo(
     () => [...resumes].sort((a, b) => b.uploadedAt - a.uploadedAt),
@@ -125,12 +126,21 @@ export default function ResumeDeck() {
                         Uploaded {formatDate(resume.uploadedAt)}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => handleDelete(e, resume.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setViewingResume(resume); }}
+                        className="p-2 text-gray-400 hover:text-primary transition-colors"
+                        title="View resume text"
+                      >
+                        <EyeIcon className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, resume.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      >
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -138,6 +148,35 @@ export default function ResumeDeck() {
         )}
 
       </div>
+
+      {/* Resume Text Viewer Modal */}
+      {viewingResume && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setViewingResume(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div>
+                <h2 className="font-semibold text-gray-900">{viewingResume.name}</h2>
+                <p className="text-sm text-gray-500">{viewingResume.fileName}</p>
+              </div>
+              <button
+                onClick={() => setViewingResume(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <pre className="p-4 overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+              {viewingResume.text}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
