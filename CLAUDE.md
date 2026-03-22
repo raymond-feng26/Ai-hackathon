@@ -156,7 +156,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [x] Add weaknesses and suggestions to gradeAnswer
 - [x] Show user responses in feedback
 - [x] Add aggregated feedback in Summary (strengths, weaknesses, improvement tips)
-- [ ] Link interview sessions to applications
+- [x] Link interview sessions to applications (via linkedApplicationId in InterviewContext)
 
 #### Phase 7: Voice Input
 - [x] Create useSpeechToText hook (Web Speech API)
@@ -165,6 +165,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 #### Phase 8: Recording Analysis (Future)
 - [ ] Deferred - requires external transcription API
+
+---
+
+### UX & Navigation Fixes
+- [x] Start practice interview from ApplicationDetails (loads resume + JD into context)
+- [x] Edit application inline (company, role, date, resume, JD) with Save/Cancel
+- [x] Back arrows on all detail pages (ResumeDeck, ApplicationDetails, AddApplication)
+- [x] "Back to Application" in Summary correctly navigates to originating application
+- [x] Context-aware back button in RoundSelector (Back to Application vs Back to Analysis)
+- [x] ResumeUpload back button navigates to previous page (navigate(-1))
+- [x] "Upload one" link shown when no resumes exist (AddApplication, ApplicationDetails edit)
+- [x] Start Practice button always visible in ApplicationDetails (disabled without JD)
+- [x] Nav button changed from "New Interview" to "New Application"
+- [x] Resume upload from ResumeDeck (no JD required)
+
+---
+
+### Code Quality (Simplify Pass)
+- [x] Extracted shared utils: scoring.js, dateFormatters.js, interviewRounds.js, applicationStatus.js
+- [x] Extracted shared UI: BackButton.jsx, ErrorAlert.jsx
+- [x] Added useMemo for averageScore, aggregated feedback in Summary.jsx
+- [x] Added useMemo for sortedResumes in ResumeDeck.jsx
 
 ## Rules
 
