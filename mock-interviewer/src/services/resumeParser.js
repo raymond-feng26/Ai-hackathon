@@ -2,9 +2,10 @@
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
-// Disable worker - runs on main thread, avoids mobile iOS worker issues
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+// Use local legacy worker bundle for mobile iOS compatibility
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export async function extractTextFromResume(file) {
   const fileName = file.name.toLowerCase();
