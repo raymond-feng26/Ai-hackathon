@@ -1,9 +1,9 @@
 // Resume text extraction - supports PDF and DOCX
 
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 
-// Disable worker - runs on main thread, avoids mobile Safari worker issues
+// Disable worker - runs on main thread, avoids mobile iOS worker issues
 pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
 export async function extractTextFromResume(file) {
@@ -23,7 +23,7 @@ export async function extractTextFromResume(file) {
 async function extractFromPDF(file) {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
     let fullText = '';
 
@@ -37,7 +37,7 @@ async function extractFromPDF(file) {
     return fullText.trim();
   } catch (error) {
     console.error('Error extracting PDF text:', error);
-    throw new Error('Failed to extract text from PDF. Please try again.');
+    throw new Error(`Failed to extract text from PDF: ${error.message}`);
   }
 }
 
