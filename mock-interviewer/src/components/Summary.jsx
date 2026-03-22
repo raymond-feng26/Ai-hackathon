@@ -18,9 +18,11 @@ export default function Summary() {
   const { addSessionToApplication } = useApp();
   const sessionSavedRef = useRef(false);
 
+  const isLeavingRef = useRef(false);
+
   // Redirect if no grades (proper way using useEffect)
   useEffect(() => {
-    if (!grades || grades.length === 0) {
+    if (!isLeavingRef.current && (!grades || grades.length === 0)) {
       navigate('/setup');
     }
   }, [grades, navigate]);
@@ -201,6 +203,7 @@ export default function Summary() {
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center flex-wrap">
           <Button variant="outline" onClick={() => {
+            isLeavingRef.current = true;
             resetInterview();
             navigate('/setup');
           }}>
@@ -208,6 +211,7 @@ export default function Summary() {
           </Button>
           {linkedApplicationId && linkedApplicationId !== 'new' ? (
             <Button onClick={() => {
+              isLeavingRef.current = true;
               const appId = linkedApplicationId;
               resetAll();
               navigate(`/applications/${appId}`);
@@ -216,8 +220,9 @@ export default function Summary() {
             </Button>
           ) : (
             <Button onClick={() => {
+              isLeavingRef.current = true;
+              resetAll();
               navigate('/');
-              setTimeout(() => resetAll(), 0);
             }}>
               Back to Home
             </Button>
