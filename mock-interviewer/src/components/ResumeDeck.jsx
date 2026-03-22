@@ -1,10 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { extractTextFromResume } from '../services/resumeParser';
 import Button from './ui/Button';
 import Card from './ui/Card';
-import { DocumentTextIcon, TrashIcon, ArrowUpTrayIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { formatDate } from '../utils/dateFormatters';
+import BackButton from './ui/BackButton';
+import ErrorAlert from './ui/ErrorAlert';
+import { DocumentTextIcon, TrashIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 
 export default function ResumeDeck() {
   const navigate = useNavigate();
@@ -12,14 +15,11 @@ export default function ResumeDeck() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+  const sortedResumes = useMemo(
+    () => [...resumes].sort((a, b) => b.uploadedAt - a.uploadedAt),
+    [resumes]
+  );
 
-  const formatDate = (timestamp) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
@@ -56,14 +56,7 @@ export default function ResumeDeck() {
   return (
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-gray-600 hover:text-primary mb-6 transition-colors"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-          <span>Back to Home</span>
-        </button>
+        <BackButton to="/" label="Back to Home" />
 
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -92,11 +85,7 @@ export default function ResumeDeck() {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+        <ErrorAlert message={error} />
 
         {resumes.length === 0 ? (
           <Card className="text-center py-12">
@@ -116,9 +105,7 @@ export default function ResumeDeck() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {resumes
-              .sort((a, b) => b.uploadedAt - a.uploadedAt)
-              .map(resume => (
+            {sortedResumes.map(resume => (
                 <Card
                   key={resume.id}
                   className="relative hover:shadow-lg transition-shadow"

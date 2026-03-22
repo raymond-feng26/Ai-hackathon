@@ -4,6 +4,10 @@ import { useApp } from '../context/AppContext';
 import { useInterview } from '../context/InterviewContext';
 import Button from './ui/Button';
 import Card from './ui/Card';
+import { formatDate, formatDateTime } from '../utils/dateFormatters';
+import { getRoundLabel } from '../utils/interviewRounds';
+import { STATUS_CONFIG } from '../utils/applicationStatus';
+import BackButton from './ui/BackButton';
 import {
   BriefcaseIcon,
   CalendarIcon,
@@ -12,18 +16,8 @@ import {
   PlayIcon,
   PencilIcon,
   XMarkIcon,
-  CheckIcon,
-  ArrowLeftIcon
+  CheckIcon
 } from '@heroicons/react/24/outline';
-
-const STATUS_CONFIG = {
-  sent: { label: 'Sent', color: 'bg-gray-100 text-gray-700' },
-  read: { label: 'Read', color: 'bg-blue-100 text-blue-700' },
-  interviewing: { label: 'Interviewing', color: 'bg-yellow-100 text-yellow-700' },
-  interviewed: { label: 'Interviewed', color: 'bg-purple-100 text-purple-700' },
-  offer: { label: 'Offer', color: 'bg-green-100 text-green-700' },
-  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-700' }
-};
 
 export default function ApplicationDetails() {
   const { id } = useParams();
@@ -53,23 +47,6 @@ export default function ApplicationDetails() {
     return null;
   }
 
-  const formatDate = (timestamp) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const formatDateTime = (timestamp) => {
-    return new Date(timestamp).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-  };
 
   const handleStatusChange = (newStatus) => {
     updateApplication(id, { status: newStatus });
@@ -129,14 +106,7 @@ export default function ApplicationDetails() {
   return (
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/applications')}
-          className="flex items-center gap-2 text-gray-600 hover:text-primary mb-6 transition-colors"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-          <span>Back to Applications</span>
-        </button>
+        <BackButton to="/applications" label="Back to Applications" />
 
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
@@ -323,7 +293,7 @@ export default function ApplicationDetails() {
                 >
                   <div>
                     <p className="font-medium text-gray-900">
-                      Session {idx + 1}: {session.round === 'first' ? 'Behavioral' : session.round === 'second' ? 'Technical' : 'Culture Fit'}
+                      Session {idx + 1}: {getRoundLabel(session.round)}
                     </p>
                     <p className="text-sm text-gray-500">
                       {formatDateTime(session.completedAt)}

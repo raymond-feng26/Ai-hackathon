@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
+import { getScoreColor } from '../utils/scoring';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import { CheckIcon, LightBulbIcon, PencilSquareIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
@@ -21,12 +22,6 @@ export default function AnalysisResults() {
 
   const { matchScore, missingKeywords, strengths, suggestedEmphasis, modifications } = analysis;
 
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
   return (
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-4xl mx-auto">
@@ -40,7 +35,7 @@ export default function AnalysisResults() {
         {/* Match Score */}
         <Card className="mb-6 text-center">
           <h2 className="text-xl font-semibold mb-4">Match Score</h2>
-          <div className={`text-7xl font-bold ${getScoreColor(matchScore)} mb-2`}>
+          <div className={`text-7xl font-bold ${getScoreColor(matchScore, true)} mb-2`}>
             {matchScore}%
           </div>
           <p className="text-gray-600">

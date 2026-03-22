@@ -8,6 +8,7 @@ import FileUpload from './ui/FileUpload';
 import TextArea from './ui/TextArea';
 import Button from './ui/Button';
 import Card from './ui/Card';
+import ErrorAlert from './ui/ErrorAlert';
 import { DocumentTextIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 export default function ResumeUpload() {
@@ -162,11 +163,7 @@ export default function ResumeUpload() {
           />
         </Card>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+        <ErrorAlert message={error} />
 
         <div className="flex gap-4 justify-center">
           <Button variant="outline" onClick={() => navigate(-1)}>

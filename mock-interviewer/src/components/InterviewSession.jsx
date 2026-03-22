@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
 import { gradeAnswer } from '../services/ai';
+import { getScoreColor } from '../utils/scoring';
 import useSpeechToText from '../hooks/useSpeechToText';
 import Button from './ui/Button';
 import Card from './ui/Card';
@@ -115,11 +116,6 @@ export default function InterviewSession() {
     }
   };
 
-  const getScoreColor = (score) => {
-    if (score >= 8) return 'text-green-600';
-    if (score >= 6) return 'text-yellow-600';
-    return 'text-red-600';
-  };
 
   return (
     <div className="min-h-screen py-12 px-4">

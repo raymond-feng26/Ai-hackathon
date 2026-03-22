@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { STATUS_CONFIG } from '../utils/applicationStatus';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import TextArea from './ui/TextArea';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import ErrorAlert from './ui/ErrorAlert';
+import BackButton from './ui/BackButton';
 
 export default function AddApplication() {
   const navigate = useNavigate();
@@ -55,14 +57,7 @@ export default function AddApplication() {
   return (
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/applications')}
-          className="flex items-center gap-2 text-gray-600 hover:text-primary mb-6 transition-colors"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-          <span>Back to Applications</span>
-        </button>
+        <BackButton to="/applications" label="Back to Applications" />
 
         <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
           New Application
@@ -112,12 +107,9 @@ export default function AddApplication() {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition-colors"
                 >
-                  <option value="sent">Sent</option>
-                  <option value="read">Read</option>
-                  <option value="interviewing">Interviewing</option>
-                  <option value="interviewed">Interviewed</option>
-                  <option value="offer">Offer</option>
-                  <option value="rejected">Rejected</option>
+                  {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                    <option key={key} value={key}>{config.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -186,11 +178,7 @@ export default function AddApplication() {
             </div>
           </Card>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
-          )}
+          <ErrorAlert message={error} />
 
           <div className="flex gap-4 justify-center">
             <Button variant="outline" type="button" onClick={() => navigate('/applications')}>

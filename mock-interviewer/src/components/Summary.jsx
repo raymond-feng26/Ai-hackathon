@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
 import { useApp } from '../context/AppContext';
+import { getScoreColor, getOverallColor } from '../utils/scoring';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import {
@@ -24,13 +25,11 @@ export default function Summary() {
     }
   }, [grades, navigate]);
 
-  // Calculate overall score
-  const totalScore = grades && grades.length > 0
-    ? grades.reduce((sum, grade) => sum + grade.score, 0)
-    : 0;
-  const averageScore = grades && grades.length > 0
-    ? (totalScore / grades.length).toFixed(1)
-    : 0;
+  const averageScore = useMemo(() => {
+    if (!grades || grades.length === 0) return 0;
+    const total = grades.reduce((sum, grade) => sum + grade.score, 0);
+    return (total / grades.length).toFixed(1);
+  }, [grades]);
 
   // Save session to application if linked
   useEffect(() => {
@@ -46,33 +45,19 @@ export default function Summary() {
     }
   }, [linkedApplicationId, grades, selectedRound, averageScore, questions, answers, addSessionToApplication]);
 
+  const { uniqueStrengths, uniqueWeaknesses, uniqueSuggestions } = useMemo(() => {
+    if (!grades || grades.length === 0) return { uniqueStrengths: [], uniqueWeaknesses: [], uniqueSuggestions: [] };
+    return {
+      uniqueStrengths: [...new Set(grades.flatMap(g => g.strengths || []))].slice(0, 5),
+      uniqueWeaknesses: [...new Set(grades.flatMap(g => g.weaknesses || g.improvements || []))].slice(0, 5),
+      uniqueSuggestions: [...new Set(grades.flatMap(g => g.suggestions || []))].slice(0, 3)
+    };
+  }, [grades]);
+
   if (!grades || grades.length === 0) {
     return null;
   }
 
-  // Aggregate strengths
-  const allStrengths = grades.flatMap(grade => grade.strengths || []);
-  const uniqueStrengths = [...new Set(allStrengths)].slice(0, 5);
-
-  // Aggregate weaknesses
-  const allWeaknesses = grades.flatMap(grade => grade.weaknesses || grade.improvements || []);
-  const uniqueWeaknesses = [...new Set(allWeaknesses)].slice(0, 5);
-
-  // Aggregate suggestions
-  const allSuggestions = grades.flatMap(grade => grade.suggestions || []);
-  const uniqueSuggestions = [...new Set(allSuggestions)].slice(0, 3);
-
-  const getScoreColor = (score) => {
-    if (score >= 8) return 'text-green-600';
-    if (score >= 6) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getOverallColor = (score) => {
-    if (score >= 8) return 'bg-green-50 border-green-200';
-    if (score >= 6) return 'bg-yellow-50 border-yellow-200';
-    return 'bg-red-50 border-red-200';
-  };
 
   return (
     <div className="min-h-screen py-12 px-4">
