@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from './ui/Button';
 import {
@@ -8,11 +9,48 @@ import {
   ChatBubbleLeftRightIcon,
   LightBulbIcon,
   BriefcaseIcon,
-  FolderIcon
+  FolderIcon,
+  QuestionMarkCircleIcon,
+  XMarkIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline';
+
+const GUIDE_STEPS = [
+  {
+    icon: DocumentTextIcon,
+    title: 'Upload Your Resume',
+    description: 'Upload a PDF or DOCX resume. You can also save up to 5 resumes in your library to reuse across sessions.',
+  },
+  {
+    icon: MagnifyingGlassIcon,
+    title: 'Paste a Job Description',
+    description: 'Copy the job posting you\'re applying to and paste it in. The AI will compare it against your resume.',
+  },
+  {
+    icon: ChartBarIcon,
+    title: 'Review Your Analysis',
+    description: 'See your match score, missing keywords, strengths, and suggested resume edits tailored to the role.',
+  },
+  {
+    icon: AcademicCapIcon,
+    title: 'Choose an Interview Round',
+    description: 'Pick Round 1 (behavioral), Round 2 (technical), or Round 3 (culture fit) to get relevant practice questions.',
+  },
+  {
+    icon: ChatBubbleLeftRightIcon,
+    title: 'Practice & Get Graded',
+    description: 'Answer questions one at a time by typing or using your microphone. Each answer gets instant AI feedback.',
+  },
+  {
+    icon: LightBulbIcon,
+    title: 'Review Your Summary',
+    description: 'After the session, see your overall score, top strengths, weaknesses, and the 3 most important things to improve.',
+  },
+];
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [showGuide, setShowGuide] = useState(false);
 
   const scrollToFeatures = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -25,6 +63,13 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="font-bold text-xl text-gray-900">InterviewCoach</div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowGuide(true)}
+              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-primary transition-colors"
+            >
+              <QuestionMarkCircleIcon className="w-5 h-5" />
+              <span className="hidden sm:inline">How to Use</span>
+            </button>
             <button
               onClick={() => navigate('/resumes')}
               className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-primary transition-colors"
@@ -154,6 +199,53 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/* How to Use Modal */}
+      {showGuide && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowGuide(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">How to Use InterviewCoach</h2>
+              <button
+                onClick={() => setShowGuide(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 space-y-5">
+              {GUIDE_STEPS.map((step, idx) => (
+                <div key={idx} className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <step.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">Step {idx + 1}</span>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-0.5">{step.title}</h3>
+                    <p className="text-sm text-gray-600">{step.description}</p>
+                  </div>
+                  {idx < GUIDE_STEPS.length - 1 && (
+                    <ArrowRightIcon className="w-4 h-4 text-gray-300 flex-shrink-0 mt-2.5 hidden" />
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="p-5 border-t border-gray-200">
+              <Button className="w-full" onClick={() => { setShowGuide(false); navigate('/upload'); }}>
+                Get Started
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
