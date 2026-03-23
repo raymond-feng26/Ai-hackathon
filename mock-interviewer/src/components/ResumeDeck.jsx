@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { extractTextFromResume } from '../services/resumeParser';
@@ -14,6 +14,12 @@ export default function ResumeDeck() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [viewingResume, setViewingResume] = useState(null);
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') setViewingResume(null); };
+    if (viewingResume) document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [viewingResume]);
+
   const sortedResumes = useMemo(
     () => [...resumes].sort((a, b) => b.uploadedAt - a.uploadedAt),
     [resumes]
@@ -126,17 +132,19 @@ export default function ResumeDeck() {
                         Uploaded {formatDate(resume.uploadedAt)}
                       </p>
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex items-start -mt-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); setViewingResume(resume); }}
-                        className="p-2 text-gray-400 hover:text-primary transition-colors"
+                        className="p-2.5 text-gray-400 hover:text-primary transition-colors"
                         title="View resume text"
+                        aria-label={`View ${resume.name} text`}
                       >
                         <EyeIcon className="w-5 h-5" />
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, resume.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        className="p-2.5 text-gray-400 hover:text-red-600 transition-colors"
+                        aria-label={`Delete ${resume.name}`}
                       >
                         <TrashIcon className="w-5 h-5" />
                       </button>
@@ -167,6 +175,7 @@ export default function ResumeDeck() {
               <button
                 onClick={() => setViewingResume(null)}
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close viewer"
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>

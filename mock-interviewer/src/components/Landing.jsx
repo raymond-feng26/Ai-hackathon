@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from './ui/Button';
 import {
@@ -63,6 +63,12 @@ export default function Landing() {
   const navigate = useNavigate();
   const [showGuide, setShowGuide] = useState(false);
 
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') setShowGuide(false); };
+    if (showGuide) document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [showGuide]);
+
   const scrollToFeatures = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -76,21 +82,24 @@ export default function Landing() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-primary transition-colors"
+              aria-label="How to use"
+              className="flex items-center gap-2 px-3 py-2.5 text-gray-600 hover:text-primary transition-colors"
             >
               <QuestionMarkCircleIcon className="w-5 h-5" />
               <span className="hidden sm:inline">How to Use</span>
             </button>
             <Link
               to="/resumes"
-              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-primary transition-colors"
+              aria-label="Resumes"
+              className="flex items-center gap-2 px-3 py-2.5 text-gray-600 hover:text-primary transition-colors"
             >
               <FolderIcon className="w-5 h-5" />
               <span className="hidden sm:inline">Resumes</span>
             </Link>
             <Link
               to="/applications"
-              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-primary transition-colors"
+              aria-label="Applications"
+              className="flex items-center gap-2 px-3 py-2.5 text-gray-600 hover:text-primary transition-colors"
             >
               <BriefcaseIcon className="w-5 h-5" />
               <span className="hidden sm:inline">Applications</span>
@@ -123,7 +132,7 @@ export default function Landing() {
         </div>
         {/* Scroll indicator */}
         <div className="absolute bottom-8 animate-bounce">
-          <button onClick={scrollToFeatures} className="text-gray-400 hover:text-gray-600">
+          <button onClick={scrollToFeatures} className="text-gray-400 hover:text-gray-600" aria-label="Scroll to features">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
@@ -259,6 +268,7 @@ export default function Landing() {
               <button
                 onClick={() => setShowGuide(false)}
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close guide"
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>

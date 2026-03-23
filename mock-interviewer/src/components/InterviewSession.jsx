@@ -163,12 +163,13 @@ export default function InterviewSession() {
                     type="button"
                     onClick={isListening ? stopListening : startListening}
                     disabled={loading}
-                    className={`absolute bottom-3 right-3 p-3 rounded-full transition-all ${
+                    className={`absolute bottom-3 right-3 p-3.5 rounded-full transition-all ${
                       isListening
                         ? 'bg-red-500 text-white animate-pulse'
                         : 'bg-gray-100 text-gray-600 hover:bg-primary hover:text-white'
                     } disabled:opacity-50`}
                     title={isListening ? 'Stop recording' : 'Start voice input'}
+                    aria-label={isListening ? 'Stop recording' : 'Start voice input'}
                   >
                     <MicrophoneIcon className="w-5 h-5" />
                   </button>

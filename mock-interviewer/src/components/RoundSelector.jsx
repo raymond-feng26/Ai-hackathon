@@ -87,7 +87,7 @@ export default function RoundSelector() {
               <Card
                 key={key}
                 onClick={() => !loading && handleRoundSelect(key)}
-                className={`text-center ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`text-center ${loading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
               >
                 <div className="flex justify-center mb-4">
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center ${round.color}`}>

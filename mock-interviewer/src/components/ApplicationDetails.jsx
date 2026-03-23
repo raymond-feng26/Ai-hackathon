@@ -44,6 +44,12 @@ export default function ApplicationDetails() {
     appliedAt: ''
   });
 
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') setSelectedSessionIdx(null); };
+    if (selectedSessionIdx !== null) document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [selectedSessionIdx]);
+
   const selectedSession = selectedSessionIdx !== null && app
     ? app.sessions[selectedSessionIdx]
     : null;
@@ -64,7 +70,14 @@ export default function ApplicationDetails() {
   }, [id, isLoaded, getApplication, navigate]);
 
   if (!app) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Loading application...</p>
+        </div>
+      </div>
+    );
   }
 
 
@@ -246,6 +259,7 @@ export default function ApplicationDetails() {
                   onClick={handleEditClick}
                   className="p-2.5 text-gray-400 hover:text-primary transition-colors self-start -mt-0.5 -mr-2"
                   title="Edit application"
+                  aria-label="Edit application"
                 >
                   <PencilIcon className="w-5 h-5" />
                 </button>
@@ -338,8 +352,12 @@ export default function ApplicationDetails() {
               {app.sessions.map((session, idx) => (
                 <div
                   key={session.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View session ${idx + 1}: ${getRoundLabel(session.round)}`}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                   onClick={() => setSelectedSessionIdx(idx)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedSessionIdx(idx); } }}
                 >
                   <div>
                     <p className="font-medium text-gray-900">
@@ -395,6 +413,7 @@ export default function ApplicationDetails() {
                 <button
                   onClick={() => setSelectedSessionIdx(null)}
                   className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close session details"
                 >
                   <XMarkIcon className="w-5 h-5" />
                 </button>

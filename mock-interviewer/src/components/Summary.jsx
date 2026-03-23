@@ -55,7 +55,15 @@ export default function Summary() {
   );
 
   if (!grades || grades.length === 0) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">No interview data</h2>
+          <p className="text-gray-500 mb-6">Complete an interview session to see your summary.</p>
+          <Button to="/setup">Go to Interview Setup</Button>
+        </div>
+      </div>
+    );
   }
 
 
