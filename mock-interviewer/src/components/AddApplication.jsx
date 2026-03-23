@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { STATUS_CONFIG } from '../utils/applicationStatus';
 import Button from './ui/Button';
@@ -10,13 +10,15 @@ import BackButton from './ui/BackButton';
 
 export default function AddApplication() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { addApplication, resumes } = useApp();
+  const prefill = location.state || {};
 
   const [formData, setFormData] = useState({
     company: '',
     role: '',
-    jobDescription: '',
-    resumeId: '',
+    jobDescription: prefill.jobDescription || '',
+    resumeId: prefill.resumeId || '',
     status: 'sent',
     interviewDate: '',
     notes: ''
@@ -181,7 +183,7 @@ export default function AddApplication() {
           <ErrorAlert message={error} />
 
           <div className="flex gap-4 justify-center">
-            <Button variant="outline" type="button" onClick={() => navigate('/applications')}>
+            <Button variant="outline" type="button" onClick={() => navigate(-1)}>
               Cancel
             </Button>
             <Button type="submit">

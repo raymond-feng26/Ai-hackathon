@@ -3,18 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
 import { useApp } from '../context/AppContext';
 import { getScoreColor, getOverallColor } from '../utils/scoring';
+import { aggregateFeedback } from '../utils/feedbackAggregator';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   LightBulbIcon,
-  ChatBubbleLeftIcon
+  ChatBubbleLeftIcon,
+  BriefcaseIcon
 } from '@heroicons/react/24/outline';
 
 export default function Summary() {
   const navigate = useNavigate();
-  const { questions, answers, grades, selectedRound, linkedApplicationId, resetAll, resetInterview } = useInterview();
+  const { questions, answers, grades, selectedRound, linkedApplicationId, jobDescription, resumeId, resetAll, resetInterview } = useInterview();
   const { addSessionToApplication } = useApp();
   const sessionSavedRef = useRef(false);
 
@@ -47,14 +49,10 @@ export default function Summary() {
     }
   }, [linkedApplicationId, grades, selectedRound, averageScore, questions, answers, addSessionToApplication]);
 
-  const { uniqueStrengths, uniqueWeaknesses, uniqueSuggestions } = useMemo(() => {
-    if (!grades || grades.length === 0) return { uniqueStrengths: [], uniqueWeaknesses: [], uniqueSuggestions: [] };
-    return {
-      uniqueStrengths: [...new Set(grades.flatMap(g => g.strengths || []))].slice(0, 5),
-      uniqueWeaknesses: [...new Set(grades.flatMap(g => g.weaknesses || g.improvements || []))].slice(0, 5),
-      uniqueSuggestions: [...new Set(grades.flatMap(g => g.suggestions || []))].slice(0, 3)
-    };
-  }, [grades]);
+  const { strengths: uniqueStrengths, weaknesses: uniqueWeaknesses, suggestions: uniqueSuggestions } = useMemo(
+    () => aggregateFeedback(grades),
+    [grades]
+  );
 
   if (!grades || grades.length === 0) {
     return null;
@@ -219,13 +217,19 @@ export default function Summary() {
               Back to Application
             </Button>
           ) : (
-            <Button onClick={() => {
-              isLeavingRef.current = true;
-              resetAll();
-              navigate('/');
-            }}>
-              Back to Home
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId } })}>
+                <BriefcaseIcon className="w-4 h-4 mr-1 inline" />
+                Save as Application
+              </Button>
+              <Button onClick={() => {
+                isLeavingRef.current = true;
+                resetAll();
+                navigate('/');
+              }}>
+                Back to Home
+              </Button>
+            </>
           )}
         </div>
       </div>

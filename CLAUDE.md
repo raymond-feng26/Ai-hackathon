@@ -170,15 +170,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### UX & Navigation Fixes
 - [x] Start practice interview from ApplicationDetails (loads resume + JD into context)
-- [x] Edit application inline (company, role, date, resume, JD) with Save/Cancel
+- [x] Edit application inline (company, role, date, resume, JD, notes, applied date) with Save/Cancel
 - [x] Back arrows on all detail pages (ResumeDeck, ApplicationDetails, AddApplication)
 - [x] "Back to Application" in Summary correctly navigates to originating application
 - [x] Context-aware back button in RoundSelector (Back to Application vs Back to Analysis)
 - [x] ResumeUpload back button navigates to previous page (navigate(-1))
 - [x] "Upload one" link shown when no resumes exist (AddApplication, ApplicationDetails edit)
-- [x] Start Practice button always visible in ApplicationDetails (disabled without JD)
+- [x] Start Practice button disabled without both JD and linked resume
 - [x] Nav button changed from "New Interview" to "New Application"
 - [x] Resume upload from ResumeDeck (no JD required)
+- [x] Home button on AnalysisResults page
+- [x] Fixed Summary "Back to Home" redirect loop (isLeavingRef guard)
+- [x] Fixed ApplicationDetails redirect on refresh (wait for isLoaded)
+- [x] AddApplication cancel goes back to previous page (navigate(-1))
+- [x] "Save as Application" from AnalysisResults and Summary (pre-fills JD + resume)
+- [x] Clickable practice sessions in ApplicationDetails (modal with full summary view)
+- [x] "How to Use" guide modal on Landing page (8-step walkthrough)
+- [x] Application Tracking section in Landing features area
+- [x] Resume text viewer modal in ResumeDeck
+- [x] "Open in new tab" support via Link/to prop on Button, BackButton, and nav links
+
+### Deployment
+- [x] Vercel deployment with vercel.json for client-side routing
+- [x] PDF.js legacy build (v4) for iOS mobile compatibility
 
 ---
 

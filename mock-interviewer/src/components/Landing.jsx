@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Button from './ui/Button';
 import {
   DocumentTextIcon,
@@ -12,7 +12,8 @@ import {
   FolderIcon,
   QuestionMarkCircleIcon,
   XMarkIcon,
-  ArrowRightIcon
+  PlayIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 
 const GUIDE_STEPS = [
@@ -46,6 +47,16 @@ const GUIDE_STEPS = [
     title: 'Review Your Summary',
     description: 'After the session, see your overall score, top strengths, weaknesses, and the 3 most important things to improve.',
   },
+  {
+    icon: BriefcaseIcon,
+    title: 'Track Your Applications',
+    description: 'Create applications to track companies, roles, and statuses. Link your resume and job description to each one.',
+  },
+  {
+    icon: PlayIcon,
+    title: 'Practice from Applications',
+    description: 'Start interview practice directly from an application. Your scores and feedback are automatically saved to that application.',
+  },
 ];
 
 export default function Landing() {
@@ -70,21 +81,21 @@ export default function Landing() {
               <QuestionMarkCircleIcon className="w-5 h-5" />
               <span className="hidden sm:inline">How to Use</span>
             </button>
-            <button
-              onClick={() => navigate('/resumes')}
+            <Link
+              to="/resumes"
               className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-primary transition-colors"
             >
               <FolderIcon className="w-5 h-5" />
               <span className="hidden sm:inline">Resumes</span>
-            </button>
-            <button
-              onClick={() => navigate('/applications')}
+            </Link>
+            <Link
+              to="/applications"
               className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-primary transition-colors"
             >
               <BriefcaseIcon className="w-5 h-5" />
               <span className="hidden sm:inline">Applications</span>
-            </button>
-            <Button onClick={() => navigate('/applications/new')} className="hidden sm:inline-flex">
+            </Link>
+            <Button to="/applications/new" className="hidden sm:inline-flex">
               New Application
             </Button>
           </div>
@@ -102,10 +113,10 @@ export default function Landing() {
             Practice with realistic questions and get instant feedback.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Button onClick={() => navigate('/upload')}>
+            <Button to="/upload">
               Start Interview Prep
             </Button>
-            <Button variant="outline" onClick={() => navigate('/applications')}>
+            <Button variant="outline" to="/applications">
               Track Applications
             </Button>
           </div>
@@ -192,8 +203,41 @@ export default function Landing() {
             </div>
           </div>
 
+          <h2 className="text-3xl font-bold text-center text-gray-900 mt-20 mb-12">
+            Application Tracking
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+                <BriefcaseIcon className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2">Track Applications</h3>
+              <p className="text-gray-600 text-sm">
+                Keep all your job applications in one place with status tracking from sent to offer
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+                <ClipboardDocumentListIcon className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2">Linked Practice</h3>
+              <p className="text-gray-600 text-sm">
+                Start interview practice from any application and scores are automatically saved
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+                <FolderIcon className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2">Resume Library</h3>
+              <p className="text-gray-600 text-sm">
+                Save up to 5 resumes and quickly link them to different applications
+              </p>
+            </div>
+          </div>
+
           <div className="text-center mt-12">
-            <Button onClick={() => navigate('/upload')}>
+            <Button to="/upload">
               Start Practicing Now
             </Button>
           </div>
@@ -232,9 +276,6 @@ export default function Landing() {
                     <h3 className="font-semibold text-gray-900 mb-0.5">{step.title}</h3>
                     <p className="text-sm text-gray-600">{step.description}</p>
                   </div>
-                  {idx < GUIDE_STEPS.length - 1 && (
-                    <ArrowRightIcon className="w-4 h-4 text-gray-300 flex-shrink-0 mt-2.5 hidden" />
-                  )}
                 </div>
               ))}
             </div>

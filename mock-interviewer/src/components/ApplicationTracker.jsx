@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { STATUS_CONFIG } from '../utils/applicationStatus';
+import { formatDate } from '../utils/dateFormatters';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import {
@@ -10,30 +12,13 @@ import {
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
-const STATUS_CONFIG = {
-  sent: { label: 'Sent', color: 'bg-gray-100 text-gray-700' },
-  read: { label: 'Read', color: 'bg-blue-100 text-blue-700' },
-  interviewing: { label: 'Interviewing', color: 'bg-yellow-100 text-yellow-700' },
-  interviewed: { label: 'Interviewed', color: 'bg-purple-100 text-purple-700' },
-  offer: { label: 'Offer', color: 'bg-green-100 text-green-700' },
-  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-700' }
-};
-
 export default function ApplicationTracker() {
-  const navigate = useNavigate();
   const { applications, deleteApplication, updateApplication } = useApp();
   const [filter, setFilter] = useState('all');
 
-  const formatDate = (timestamp) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
   const handleDelete = (e, id) => {
     e.stopPropagation();
+    e.preventDefault();
     if (confirm('Are you sure you want to delete this application?')) {
       deleteApplication(id);
     }
@@ -41,6 +26,7 @@ export default function ApplicationTracker() {
 
   const handleStatusChange = (e, id) => {
     e.stopPropagation();
+    e.preventDefault();
     updateApplication(id, { status: e.target.value });
   };
 
@@ -62,7 +48,7 @@ export default function ApplicationTracker() {
               Track your job applications
             </p>
           </div>
-          <Button onClick={() => navigate('/applications/new')}>
+          <Button to="/applications/new">
             <PlusIcon className="w-5 h-5 mr-2 inline" />
             New Application
           </Button>
@@ -114,7 +100,7 @@ export default function ApplicationTracker() {
                 : 'Try a different filter'}
             </p>
             {filter === 'all' && (
-              <Button onClick={() => navigate('/applications/new')}>
+              <Button to="/applications/new">
                 Add Application
               </Button>
             )}
@@ -122,9 +108,8 @@ export default function ApplicationTracker() {
         ) : (
           <div className="space-y-3">
             {sortedApps.map(app => (
+              <Link key={app.id} to={`/applications/${app.id}`} className="block">
               <Card
-                key={app.id}
-                onClick={() => navigate(`/applications/${app.id}`)}
                 className="hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="flex items-center">
@@ -138,7 +123,8 @@ export default function ApplicationTracker() {
                       </h3>
                       <select
                         value={app.status}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                        onMouseDown={(e) => e.stopPropagation()}
                         onChange={(e) => handleStatusChange(e, app.id)}
                         className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${STATUS_CONFIG[app.status].color}`}
                       >
@@ -166,12 +152,13 @@ export default function ApplicationTracker() {
                   </div>
                 </div>
               </Card>
+              </Link>
             ))}
           </div>
         )}
 
         <div className="flex justify-center mt-8">
-          <Button variant="outline" onClick={() => navigate('/')}>
+          <Button variant="outline" to="/">
             Back to Home
           </Button>
         </div>

@@ -13,7 +13,7 @@ import { DocumentTextIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 export default function ResumeUpload() {
   const navigate = useNavigate();
-  const { setResumeText, setJobDescription, setAnalysis, setLinkedApplicationId } = useInterview();
+  const { setResumeText, setJobDescription, setAnalysis, setResumeId, setLinkedApplicationId } = useInterview();
   const { resumes, addResume, maxResumes } = useApp();
 
   const [file, setFile] = useState(null);
@@ -51,6 +51,8 @@ export default function ResumeUpload() {
     try {
       let resumeText;
 
+      let currentResumeId = null;
+
       if (selectedResumeId) {
         // Use saved resume
         const savedResume = resumes.find(r => r.id === selectedResumeId);
@@ -58,18 +60,20 @@ export default function ResumeUpload() {
           throw new Error('Selected resume not found');
         }
         resumeText = savedResume.text;
+        currentResumeId = selectedResumeId;
       } else {
         // Extract text from uploaded file
         resumeText = await extractTextFromResume(file);
 
         // Save to library if checkbox is checked and space available
         if (saveToLibrary && resumes.length < maxResumes) {
-          addResume(resumeText, file.name);
+          currentResumeId = addResume(resumeText, file.name);
         }
       }
 
       setResumeText(resumeText);
       setJobDescription(jd);
+      setResumeId(currentResumeId);
       // Clear any previous application link (this is a standalone practice)
       setLinkedApplicationId(null);
 

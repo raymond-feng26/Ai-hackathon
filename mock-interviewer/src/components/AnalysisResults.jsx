@@ -4,11 +4,11 @@ import { useInterview } from '../context/InterviewContext';
 import { getScoreColor } from '../utils/scoring';
 import Button from './ui/Button';
 import Card from './ui/Card';
-import { CheckIcon, LightBulbIcon, PencilSquareIcon, ArrowRightIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, LightBulbIcon, PencilSquareIcon, ArrowRightIcon, HomeIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
 
 export default function AnalysisResults() {
   const navigate = useNavigate();
-  const { analysis } = useInterview();
+  const { analysis, jobDescription, resumeId, linkedApplicationId } = useInterview();
 
   useEffect(() => {
     if (!analysis) {
@@ -129,7 +129,7 @@ export default function AnalysisResults() {
           </Card>
         )}
 
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
           <Button variant="outline" onClick={() => navigate('/')}>
             <HomeIcon className="w-4 h-4 mr-1 inline" />
             Home
@@ -137,6 +137,12 @@ export default function AnalysisResults() {
           <Button variant="outline" onClick={() => navigate('/upload')}>
             Try Another
           </Button>
+          {!linkedApplicationId && (
+            <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId } })}>
+              <BriefcaseIcon className="w-4 h-4 mr-1 inline" />
+              Save as Application
+            </Button>
+          )}
           <Button onClick={() => navigate('/setup')}>
             Start Interview Practice
           </Button>

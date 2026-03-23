@@ -11,6 +11,7 @@ export function InterviewProvider({ children }) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [grades, setGrades] = useState([]);
+  const [resumeId, setResumeId] = useState(null);
   const [linkedApplicationId, setLinkedApplicationId] = useState(null);
 
   const resetInterview = () => {
@@ -28,6 +29,7 @@ export function InterviewProvider({ children }) {
     setCurrentQuestionIndex(0);
     setAnswers([]);
     setGrades([]);
+    setResumeId(null);
     setLinkedApplicationId(null);
   };
 
@@ -48,6 +50,8 @@ export function InterviewProvider({ children }) {
     setAnswers,
     grades,
     setGrades,
+    resumeId,
+    setResumeId,
     linkedApplicationId,
     setLinkedApplicationId,
     resetInterview,

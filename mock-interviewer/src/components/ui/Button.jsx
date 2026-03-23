@@ -1,6 +1,9 @@
+import { Link } from 'react-router-dom';
+
 export default function Button({
   children,
   variant = 'primary',
+  to,
   onClick,
   disabled = false,
   type = 'button',
@@ -14,12 +17,22 @@ export default function Button({
     outline: 'border-2 border-primary text-primary hover:bg-blue-50'
   };
 
+  const styles = `${baseStyles} ${variants[variant]} ${className}`;
+
+  if (to && !disabled) {
+    return (
+      <Link to={to} className={styles}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${baseStyles} ${variants[variant]} ${className}`}
+      className={styles}
     >
       {children}
     </button>
