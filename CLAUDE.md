@@ -152,6 +152,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [x] Add resume modification suggestions to mockAI
 - [x] Display before/after recommendations in AnalysisResults
 
+#### Phase 9: Real AI Integration
+- [x] Install @google/generative-ai SDK
+- [x] Create src/services/gemini.js with real Gemini 2.5 Flash calls (analyzeResumeVsJD, generateQuestions, gradeAnswer)
+- [x] Wire ai.js switcher to use gemini.js when VITE_GEMINI_API_KEY is set
+- [x] Tightened grading prompt — strict rubric, 5-7 average, 9+ reserved for exceptional answers
+- [x] Fixed "Save as Application" not attaching interview session to new application
+- [x] Added delete button with confirm dialog on practice sessions in ApplicationDetails
+- [x] Added deleteSessionFromApplication to AppContext
+
 #### Phase 6: Enhanced Interview Feedback
 - [x] Add weaknesses and suggestions to gradeAnswer
 - [x] Show user responses in feedback

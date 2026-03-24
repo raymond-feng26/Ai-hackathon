@@ -226,7 +226,7 @@ export default function Summary() {
             </Button>
           ) : (
             <>
-              <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId } })}>
+              <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId, pendingSession: { round: selectedRound, score: parseFloat(averageScore), questions, answers, grades } } })}>
                 <BriefcaseIcon className="w-4 h-4 mr-1 inline" />
                 Save as Application
               </Button>

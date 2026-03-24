@@ -11,7 +11,8 @@
       "Bash(npm --version:*)",
       "Read(//c/Users/raymo/AppData/Local/Temp/claude/C--Washu25-26-washu-26spring-Ai-hackathon/tasks//**)",
       "Bash(ls /tmp/claude*/tasks/)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

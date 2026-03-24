@@ -23,13 +23,14 @@ import {
   ChatBubbleLeftIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 export default function ApplicationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getApplication, updateApplication, getResume, resumes, isLoaded } = useApp();
+  const { getApplication, updateApplication, getResume, resumes, isLoaded, deleteSessionFromApplication } = useApp();
   const { setResumeText, setJobDescription, setLinkedApplicationId } = useInterview();
   const [app, setApp] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -367,11 +368,18 @@ export default function ApplicationDetails() {
                       {formatDateTime(session.completedAt)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className={`text-2xl font-bold ${getScoreColor(session.score)}`}>
                       {session.score.toFixed(1)}/10
                     </span>
                     <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                    <button
+                      aria-label="Delete session"
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); if (confirm('Are you sure you want to delete this practice session?')) { deleteSessionFromApplication(id, session.id); } }}
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}

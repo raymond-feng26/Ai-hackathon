@@ -238,7 +238,7 @@ export default function InterviewSession() {
                     <CheckCircleIcon className="w-5 h-5 text-green-600 mr-2" />
                     <h4 className="font-semibold text-green-700">Strengths</h4>
                   </div>
-                  <ul className="space-y-1 ml-7">
+                  <ul className="space-y-3 ml-7">
                     {currentGrade.strengths.map((strength, idx) => (
                       <li key={idx} className="text-gray-700 text-sm">{strength}</li>
                     ))}
@@ -253,7 +253,7 @@ export default function InterviewSession() {
                     <ExclamationTriangleIcon className="w-5 h-5 text-orange-600 mr-2" />
                     <h4 className="font-semibold text-orange-700">Areas to Improve</h4>
                   </div>
-                  <ul className="space-y-1 ml-7">
+                  <ul className="space-y-3 ml-7">
                     {currentGrade.weaknesses.map((weakness, idx) => (
                       <li key={idx} className="text-gray-700 text-sm">{weakness}</li>
                     ))}
@@ -268,7 +268,7 @@ export default function InterviewSession() {
                     <LightBulbIcon className="w-5 h-5 text-blue-600 mr-2" />
                     <h4 className="font-semibold text-blue-700">Try This Instead</h4>
                   </div>
-                  <ul className="space-y-2 ml-7">
+                  <ul className="space-y-3 ml-7">
                     {currentGrade.suggestions.map((suggestion, idx) => (
                       <li key={idx} className="text-gray-700 text-sm italic">{suggestion}</li>
                     ))}

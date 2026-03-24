@@ -8,10 +8,7 @@ if (USE_MOCK) {
   // Use mock AI for development
   aiService = await import('./mockAI.js');
 } else {
-  // Use real Gemini API when key is available
-  // aiService = await import('./gemini.js');
-  // For now, fallback to mock if gemini.js doesn't exist
-  aiService = await import('./mockAI.js');
+  aiService = await import('./gemini.js');
 }
 
 export const { analyzeResumeVsJD, generateQuestions, gradeAnswer } = aiService;

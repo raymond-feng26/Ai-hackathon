@@ -150,6 +150,15 @@ export function AppProvider({ children }) {
     return session.id;
   };
 
+  const deleteSessionFromApplication = (appId, sessionId) => {
+    setApplications(prev => prev.map(app => {
+      if (app.id === appId) {
+        return { ...app, sessions: app.sessions.filter(s => s.id !== sessionId), updatedAt: Date.now() };
+      }
+      return app;
+    }));
+  };
+
   const value = {
     // Resumes
     resumes,
@@ -165,6 +174,7 @@ export function AppProvider({ children }) {
     deleteApplication,
     getApplication,
     addSessionToApplication,
+    deleteSessionFromApplication,
 
     // State
     isLoaded

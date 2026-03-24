@@ -11,7 +11,7 @@ import BackButton from './ui/BackButton';
 export default function AddApplication() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addApplication, resumes } = useApp();
+  const { addApplication, addSessionToApplication, resumes } = useApp();
   const prefill = location.state || {};
 
   const [formData, setFormData] = useState({
@@ -52,6 +52,10 @@ export default function AddApplication() {
       interviewDate: formData.interviewDate ? new Date(formData.interviewDate).getTime() : null,
       notes: formData.notes.trim()
     });
+
+    if (prefill.pendingSession) {
+      addSessionToApplication(appId, prefill.pendingSession);
+    }
 
     navigate(`/applications/${appId}`);
   };
