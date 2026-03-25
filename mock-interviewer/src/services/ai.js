@@ -11,4 +11,4 @@ if (USE_MOCK) {
   aiService = await import('./gemini.js');
 }
 
-export const { analyzeResumeVsJD, generateQuestions, gradeAnswer } = aiService;
+export const { analyzeResumeVsJD, generateQuestions, gradeAnswer, analyzeInterview } = aiService;

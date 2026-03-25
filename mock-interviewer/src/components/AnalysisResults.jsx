@@ -1,10 +1,51 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
 import { getScoreColor } from '../utils/scoring';
 import Button from './ui/Button';
 import Card from './ui/Card';
-import { CheckIcon, LightBulbIcon, PencilSquareIcon, ArrowRightIcon, HomeIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, LightBulbIcon, PencilSquareIcon, ArrowRightIcon, HomeIcon, BriefcaseIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+
+const MATCH_SCORE_TIERS = [
+  { range: '85–100', label: 'Near-perfect', desc: 'Covers virtually all required skills, directly relevant experience.', color: 'text-green-600' },
+  { range: '70–84',  label: 'Strong',       desc: 'Most required skills present, few gaps in preferred qualifications.', color: 'text-green-500' },
+  { range: '50–69',  label: 'Moderate',     desc: 'Some required skills, transferable experience, notable gaps.',        color: 'text-yellow-600' },
+  { range: '30–49',  label: 'Weak',         desc: 'Few required skills, significant upskilling needed.',                 color: 'text-orange-500' },
+  { range: '0–29',   label: 'Poor',         desc: 'Fundamentally different field or level, almost no overlap.',          color: 'text-red-600' },
+];
+
+function ScoreGuidePopover({ tiers }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+  return (
+    <div className="relative inline-flex items-center" ref={ref}>
+      <button onClick={() => setOpen(v => !v)} aria-label="Scoring guide" className="text-gray-400 hover:text-gray-600 transition-colors">
+        <QuestionMarkCircleIcon className="w-5 h-5" />
+      </button>
+      {open && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-7 z-20 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Scoring Guide</p>
+          <div className="space-y-2">
+            {tiers.map(t => (
+              <div key={t.range} className="flex items-start gap-2">
+                <span className={`text-sm font-bold w-14 flex-shrink-0 ${t.color}`}>{t.range}</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-800">{t.label} — </span>
+                  <span className="text-sm text-gray-500">{t.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AnalysisResults() {
   const navigate = useNavigate();
@@ -34,7 +75,10 @@ export default function AnalysisResults() {
 
         {/* Match Score */}
         <Card className="mb-6 text-center">
-          <h2 className="text-xl font-semibold mb-4">Match Score</h2>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <h2 className="text-xl font-semibold">Match Score</h2>
+            <ScoreGuidePopover tiers={MATCH_SCORE_TIERS} />
+          </div>
           <div className={`text-7xl font-bold ${getScoreColor(matchScore, true)} mb-2`}>
             {matchScore}%
           </div>
@@ -138,7 +182,7 @@ export default function AnalysisResults() {
             Try Another
           </Button>
           {!linkedApplicationId && (
-            <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId } })}>
+            <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId, analysis } })}>
               <BriefcaseIcon className="w-4 h-4 mr-1 inline" />
               Save as Application
             </Button>

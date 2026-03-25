@@ -103,7 +103,8 @@ export function AppProvider({ children }) {
       updatedAt: Date.now(),
       interviewDate: data.interviewDate || null,
       sessions: [],
-      notes: data.notes || ''
+      notes: data.notes || '',
+      analysis: data.analysis || null
     };
 
     setApplications(prev => [...prev, newApp]);

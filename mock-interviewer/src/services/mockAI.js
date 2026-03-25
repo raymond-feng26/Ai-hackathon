@@ -152,3 +152,28 @@ export async function gradeAnswer(question, answer, round) {
     improvements: weaknesses // Keep for backward compatibility
   };
 }
+
+export async function analyzeInterview(audioBase64, mimeType) {
+  await delay(2000);
+  return {
+    transcriptionSummary: "The candidate discussed their software engineering background, focusing on React and Node.js projects. They described a challenging team leadership experience and how they handled a production outage. The interviewer asked about career goals and the candidate expressed interest in growing into a senior engineering role.",
+    overallScore: 6,
+    strengths: [
+      "Clear explanation of technical projects",
+      "Good use of specific examples when describing team experience",
+      "Confident and composed throughout"
+    ],
+    weaknesses: [
+      "Frequent use of filler words (um, like) disrupts flow",
+      "Answers trailed off without a clear conclusion",
+      "Missed quantifying the impact of the production outage fix"
+    ],
+    suggestions: [
+      "Practice pausing instead of using filler words — silence reads as confidence",
+      "End each answer with a clear takeaway: 'The result was X'",
+      "Quantify your achievements: mention team size, timelines, or business impact"
+    ],
+    fillerWordCount: 27,
+    keyTopics: ["React", "Node.js", "Team leadership", "Production incident", "Career goals", "Code review"]
+  };
+}

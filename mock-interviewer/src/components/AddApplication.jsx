@@ -50,7 +50,8 @@ export default function AddApplication() {
       resumeId: formData.resumeId || null,
       status: formData.status,
       interviewDate: formData.interviewDate ? new Date(formData.interviewDate).getTime() : null,
-      notes: formData.notes.trim()
+      notes: formData.notes.trim(),
+      analysis: prefill.analysis ? { ...prefill.analysis, analyzedAt: Date.now() } : null
     });
 
     if (prefill.pendingSession) {

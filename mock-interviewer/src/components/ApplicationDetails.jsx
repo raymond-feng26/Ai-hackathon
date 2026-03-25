@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useInterview } from '../context/InterviewContext';
+import { analyzeResumeVsJD } from '../services/ai';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import { formatDate, formatDateTime } from '../utils/dateFormatters';
@@ -31,10 +32,12 @@ export default function ApplicationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getApplication, updateApplication, getResume, resumes, isLoaded, deleteSessionFromApplication } = useApp();
-  const { setResumeText, setJobDescription, setLinkedApplicationId } = useInterview();
+  const { setResumeText, setJobDescription, setLinkedApplicationId, setAnalysis } = useInterview();
   const [app, setApp] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSessionIdx, setSelectedSessionIdx] = useState(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [editForm, setEditForm] = useState({
     company: '',
     role: '',
@@ -123,21 +126,30 @@ export default function ApplicationDetails() {
     setIsEditing(false);
   };
 
+  const handleRunAnalysis = async () => {
+    const resume = getResume(app.resumeId);
+    if (!resume || !app.jobDescription) return;
+    setIsAnalyzing(true);
+    try {
+      const result = await analyzeResumeVsJD(resume.text, app.jobDescription);
+      const analysisWithTimestamp = { ...result, analyzedAt: Date.now() };
+      updateApplication(id, { analysis: analysisWithTimestamp });
+      setApp(prev => ({ ...prev, analysis: analysisWithTimestamp }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleStartPractice = () => {
-    // If there's a linked resume, load it
     if (app.resumeId) {
       const resume = getResume(app.resumeId);
-      if (resume) {
-        setResumeText(resume.text);
-      }
+      if (resume) setResumeText(resume.text);
     }
-    // Load job description
-    if (app.jobDescription) {
-      setJobDescription(app.jobDescription);
-    }
-    // Link this interview to the application
+    if (app.jobDescription) setJobDescription(app.jobDescription);
+    if (app.analysis) setAnalysis(app.analysis);
     setLinkedApplicationId(id);
-    // Navigate to round selection
     navigate('/setup');
   };
 
@@ -386,6 +398,88 @@ export default function ApplicationDetails() {
             </div>
           )}
         </Card>
+
+        {/* Resume Analysis */}
+        {canPractice && (
+          <Card className="mb-8">
+            <button
+              className="w-full flex items-center justify-between"
+              onClick={() => setShowAnalysis(v => !v)}
+            >
+              <h2 className="text-xl font-semibold">Resume Analysis</h2>
+              <div className="flex items-center gap-3">
+                {app.analysis && (
+                  <span className={`text-xl font-bold ${getScoreColor(app.analysis.matchScore, true)}`}>
+                    {app.analysis.matchScore}% match
+                  </span>
+                )}
+                <ChevronRightIcon className={`w-5 h-5 text-gray-400 transition-transform ${showAnalysis ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+
+            {showAnalysis && (
+              <div className="mt-4">
+                {app.analysis ? (
+                  <div className="space-y-4">
+                    {/* Missing Keywords */}
+                    {app.analysis.missingKeywords?.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-2">Missing Keywords</p>
+                        <div className="flex flex-wrap gap-2">
+                          {app.analysis.missingKeywords.map((kw, i) => (
+                            <span key={i} className="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full">{kw}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* Strengths */}
+                    {app.analysis.strengths?.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-green-700 mb-2">Strengths</p>
+                        <ul className="space-y-2">
+                          {app.analysis.strengths.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                              <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {/* Suggested Emphasis */}
+                    {app.analysis.suggestedEmphasis?.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-blue-700 mb-2">Preparation Tips</p>
+                        <ul className="space-y-2">
+                          {app.analysis.suggestedEmphasis.map((tip, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                              <LightBulbIcon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {app.analysis.analyzedAt && (
+                      <p className="text-xs text-gray-400">Analyzed {formatDateTime(app.analysis.analyzedAt)}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm mb-3">No analysis yet for this application.</p>
+                )}
+
+                <Button
+                  variant="outline"
+                  onClick={handleRunAnalysis}
+                  disabled={isAnalyzing}
+                  className="mt-4"
+                >
+                  {isAnalyzing ? 'Analyzing…' : app.analysis ? 'Re-run Analysis' : 'Run Analysis'}
+                </Button>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Notes */}
         {app.notes && (

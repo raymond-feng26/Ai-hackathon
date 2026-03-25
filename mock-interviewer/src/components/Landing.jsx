@@ -13,55 +13,46 @@ import {
   QuestionMarkCircleIcon,
   XMarkIcon,
   PlayIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  MicrophoneIcon
 } from '@heroicons/react/24/outline';
 
-const GUIDE_STEPS = [
+const GUIDE_TABS = [
   {
-    icon: DocumentTextIcon,
-    title: 'Upload Your Resume',
-    description: 'Upload a PDF or DOCX resume. You can also save up to 5 resumes in your library to reuse across sessions.',
+    id: 'simulation',
+    label: 'Interview Simulation',
+    steps: [
+      { icon: DocumentTextIcon, title: 'Upload Your Resume', description: 'Upload a PDF or DOCX resume. You can also save up to 5 resumes in your library to reuse across sessions.' },
+      { icon: MagnifyingGlassIcon, title: 'Paste a Job Description', description: "Copy the job posting you're applying to and paste it in. The AI will compare it against your resume." },
+      { icon: ChartBarIcon, title: 'Review Your Analysis', description: 'See your match score, missing keywords, strengths, and suggested resume edits tailored to the role.' },
+      { icon: AcademicCapIcon, title: 'Choose an Interview Round', description: 'Pick Round 1 (behavioral), Round 2 (technical), or Round 3 (culture fit) to get relevant practice questions.' },
+      { icon: ChatBubbleLeftRightIcon, title: 'Practice & Get Graded', description: 'Answer questions one at a time by typing or using your microphone. Each answer gets instant AI feedback.' },
+      { icon: LightBulbIcon, title: 'Review Your Summary', description: 'After the session, see your overall score, top strengths, weaknesses, and the 3 most important things to improve.' },
+    ],
   },
   {
-    icon: MagnifyingGlassIcon,
-    title: 'Paste a Job Description',
-    description: 'Copy the job posting you\'re applying to and paste it in. The AI will compare it against your resume.',
+    id: 'tracking',
+    label: 'Application Tracking',
+    steps: [
+      { icon: BriefcaseIcon, title: 'Track Your Applications', description: 'Create applications to track companies, roles, and statuses. Link your resume and job description to each one.' },
+      { icon: PlayIcon, title: 'Practice from Applications', description: 'Start interview practice directly from an application. Your scores and feedback are automatically saved to that application.' },
+    ],
   },
   {
-    icon: ChartBarIcon,
-    title: 'Review Your Analysis',
-    description: 'See your match score, missing keywords, strengths, and suggested resume edits tailored to the role.',
-  },
-  {
-    icon: AcademicCapIcon,
-    title: 'Choose an Interview Round',
-    description: 'Pick Round 1 (behavioral), Round 2 (technical), or Round 3 (culture fit) to get relevant practice questions.',
-  },
-  {
-    icon: ChatBubbleLeftRightIcon,
-    title: 'Practice & Get Graded',
-    description: 'Answer questions one at a time by typing or using your microphone. Each answer gets instant AI feedback.',
-  },
-  {
-    icon: LightBulbIcon,
-    title: 'Review Your Summary',
-    description: 'After the session, see your overall score, top strengths, weaknesses, and the 3 most important things to improve.',
-  },
-  {
-    icon: BriefcaseIcon,
-    title: 'Track Your Applications',
-    description: 'Create applications to track companies, roles, and statuses. Link your resume and job description to each one.',
-  },
-  {
-    icon: PlayIcon,
-    title: 'Practice from Applications',
-    description: 'Start interview practice directly from an application. Your scores and feedback are automatically saved to that application.',
+    id: 'analysis',
+    label: 'Interview Analysis',
+    steps: [
+      { icon: MicrophoneIcon, title: 'Upload Your Recording', description: 'Upload an audio recording (MP3, WAV, WebM, M4A) of a real interview — up to 15 minutes.' },
+      { icon: ChartBarIcon, title: 'Get AI Analysis', description: 'The AI transcribes and evaluates your interview, scoring your performance and counting filler words.' },
+      { icon: LightBulbIcon, title: 'Review Your Report', description: 'See your score, key topics discussed, strengths, weaknesses, and actionable suggestions for improvement.' },
+    ],
   },
 ];
 
 export default function Landing() {
   const navigate = useNavigate();
   const [showGuide, setShowGuide] = useState(false);
+  const [activeGuideTab, setActiveGuideTab] = useState('simulation');
 
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') setShowGuide(false); };
@@ -81,7 +72,7 @@ export default function Landing() {
           <div className="font-bold text-xl text-gray-900">InterviewCoach</div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setShowGuide(true)}
+              onClick={() => { setActiveGuideTab('simulation'); setShowGuide(true); }}
               aria-label="How to use"
               className="flex items-center gap-2 px-3 py-2.5 text-gray-600 hover:text-primary transition-colors"
             >
@@ -103,6 +94,14 @@ export default function Landing() {
             >
               <BriefcaseIcon className="w-5 h-5" />
               <span className="hidden sm:inline">Applications</span>
+            </Link>
+            <Link
+              to="/analyze-recording"
+              aria-label="Analyze Recording"
+              className="flex items-center gap-2 px-3 py-2.5 text-gray-600 hover:text-primary transition-colors"
+            >
+              <MicrophoneIcon className="w-5 h-5" />
+              <span className="hidden sm:inline">Analyze Recording</span>
             </Link>
             <Button to="/applications/new" className="hidden sm:inline-flex">
               New Application
@@ -143,112 +142,65 @@ export default function Landing() {
       {/* Features Section */}
       <div id="features" className="py-20 px-4 bg-white">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            How It Works
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+            Everything You Need
           </h2>
+          <p className="text-center text-gray-500 mb-14 max-w-2xl mx-auto">
+            Three powerful tools to help you land your next role — from resume optimization to live practice to real interview feedback.
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <DocumentTextIcon className="w-8 h-8 text-primary" />
-                </div>
+            {/* Interview Simulation */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow flex flex-col">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                <AcademicCapIcon className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="font-semibold text-xl mb-3">1. Upload Resume</h3>
-              <p className="text-gray-600">
-                Upload your resume (PDF or DOCX) and paste the job description you're targeting
+              <h3 className="font-bold text-xl text-gray-900 mb-2">Interview Simulation</h3>
+              <p className="text-gray-600 text-sm mb-4 flex-1">
+                Upload your resume and a job description. Get a match score with gap analysis, then practice with AI-generated questions tailored to the role. Every answer is graded instantly with strengths, weaknesses, and tips.
               </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <ChartBarIcon className="w-8 h-8 text-primary" />
-                </div>
+              <div className="flex flex-wrap gap-2 mb-5">
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Resume analysis</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">3 interview rounds</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">AI grading</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Voice input</span>
               </div>
-              <h3 className="font-semibold text-xl mb-3">2. Get Analysis</h3>
-              <p className="text-gray-600">
-                See your match score, identify skill gaps, and get personalized improvement tips
-              </p>
+              <Button to="/upload" className="w-full">Start Practicing</Button>
             </div>
-            <div className="text-center p-6">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <AcademicCapIcon className="w-8 h-8 text-primary" />
-                </div>
-              </div>
-              <h3 className="font-semibold text-xl mb-3">3. Practice Interview</h3>
-              <p className="text-gray-600">
-                Answer tailored questions and receive instant AI feedback on your responses
-              </p>
-            </div>
-          </div>
 
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                <MagnifyingGlassIcon className="w-5 h-5 text-primary" />
+            {/* Application Tracking */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow flex flex-col">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                <BriefcaseIcon className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg mb-2">Smart Analysis</h3>
-              <p className="text-gray-600 text-sm">
-                Get a detailed match score and identify gaps between your resume and the job description
+              <h3 className="font-bold text-xl text-gray-900 mb-2">Application Tracking</h3>
+              <p className="text-gray-600 text-sm mb-4 flex-1">
+                Keep every job application in one place. Track status from sent to offer, link your resume and job description, and launch practice sessions directly from any application — scores save automatically.
               </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                <ChatBubbleLeftRightIcon className="w-5 h-5 text-primary" />
+              <div className="flex flex-wrap gap-2 mb-5">
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Status tracking</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Resume library</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Linked practice</span>
               </div>
-              <h3 className="font-semibold text-lg mb-2">Tailored Questions</h3>
-              <p className="text-gray-600 text-sm">
-                Practice with questions customized to your experience and the role you're applying for
-              </p>
+              <Button variant="outline" to="/applications" className="w-full">Track Applications</Button>
             </div>
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                <LightBulbIcon className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Instant Feedback</h3>
-              <p className="text-gray-600 text-sm">
-                Receive real-time grading and actionable tips to improve your answers
-              </p>
-            </div>
-          </div>
 
-          <h2 className="text-3xl font-bold text-center text-gray-900 mt-20 mb-12">
-            Application Tracking
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                <BriefcaseIcon className="w-5 h-5 text-primary" />
+            {/* Recording Analysis */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow flex flex-col">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                <MicrophoneIcon className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg mb-2">Track Applications</h3>
-              <p className="text-gray-600 text-sm">
-                Keep all your job applications in one place with status tracking from sent to offer
+              <h3 className="font-bold text-xl text-gray-900 mb-2">Recording Analysis</h3>
+              <p className="text-gray-600 text-sm mb-4 flex-1">
+                Upload a recording of a real interview and let AI evaluate your performance. Get a transcription summary, filler word count, key topics discussed, and specific feedback on what to improve.
               </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                <ClipboardDocumentListIcon className="w-5 h-5 text-primary" />
+              <div className="flex flex-wrap gap-2 mb-5">
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Audio analysis</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Filler detection</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Performance score</span>
               </div>
-              <h3 className="font-semibold text-lg mb-2">Linked Practice</h3>
-              <p className="text-gray-600 text-sm">
-                Start interview practice from any application and scores are automatically saved
-              </p>
+              <Button variant="outline" to="/analyze-recording" className="w-full">Analyze Recording</Button>
             </div>
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                <FolderIcon className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Resume Library</h3>
-              <p className="text-gray-600 text-sm">
-                Save up to 5 resumes and quickly link them to different applications
-              </p>
-            </div>
-          </div>
-
-          <div className="text-center mt-12">
-            <Button to="/upload">
-              Start Practicing Now
-            </Button>
           </div>
         </div>
       </div>
@@ -260,7 +212,7 @@ export default function Landing() {
           onClick={() => setShowGuide(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col"
+            className="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
@@ -273,25 +225,39 @@ export default function Landing() {
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 px-5 pt-3 gap-1">
+              {GUIDE_TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveGuideTab(tab.id)}
+                  className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                    activeGuideTab === tab.id
+                      ? 'text-primary border-b-2 border-primary'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
             <div className="overflow-y-auto p-5 space-y-5">
-              {GUIDE_STEPS.map((step, idx) => (
+              {GUIDE_TABS.find(t => t.id === activeGuideTab)?.steps.map((step, idx) => (
                 <div key={idx} className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
                     <step.icon className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">Step {idx + 1}</span>
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-0.5">{step.title}</h3>
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wide">Step {idx + 1}</span>
+                    <h3 className="font-semibold text-gray-900 mb-0.5 mt-1">{step.title}</h3>
                     <p className="text-sm text-gray-600">{step.description}</p>
                   </div>
                 </div>
               ))}
             </div>
             <div className="p-5 border-t border-gray-200">
-              <Button className="w-full" onClick={() => { setShowGuide(false); navigate('/upload'); }}>
-                Get Started
+              <Button className="w-full" onClick={() => setShowGuide(false)}>
+                Got it!
               </Button>
             </div>
           </div>

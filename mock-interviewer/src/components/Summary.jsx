@@ -16,7 +16,7 @@ import {
 
 export default function Summary() {
   const navigate = useNavigate();
-  const { questions, answers, grades, selectedRound, linkedApplicationId, jobDescription, resumeId, resetAll, resetInterview } = useInterview();
+  const { questions, answers, grades, selectedRound, linkedApplicationId, jobDescription, resumeId, analysis, resetAll, resetInterview } = useInterview();
   const { addSessionToApplication } = useApp();
   const sessionSavedRef = useRef(false);
 
@@ -226,7 +226,7 @@ export default function Summary() {
             </Button>
           ) : (
             <>
-              <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId, pendingSession: { round: selectedRound, score: parseFloat(averageScore), questions, answers, grades } } })}>
+              <Button variant="outline" onClick={() => navigate('/applications/new', { state: { jobDescription, resumeId, analysis, pendingSession: { round: selectedRound, score: parseFloat(averageScore), questions, answers, grades } } })}>
                 <BriefcaseIcon className="w-4 h-4 mr-1 inline" />
                 Save as Application
               </Button>

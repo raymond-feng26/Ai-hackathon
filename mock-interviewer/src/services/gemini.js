@@ -36,6 +36,15 @@ Return ONLY valid JSON with this exact shape:
   ]
 }
 
+Scoring guide for matchScore (be strict — most resumes should score 40-65):
+- 85-100: Near-perfect match. Covers virtually all required and preferred skills, directly relevant experience at the right seniority.
+- 70-84: Strong match. Most required skills present, relevant industry experience, few gaps in preferred qualifications.
+- 50-69: Moderate match. Some required skills, transferable experience, notable gaps in key requirements or seniority.
+- 30-49: Weak match. Few required skills, mostly unrelated experience, significant upskilling needed.
+- 0-29: Poor match. Fundamentally different field or level, almost no overlap.
+
+Do NOT inflate scores. A career-changer against a senior role is 35-45. Partial skill overlap at wrong seniority is 50-60. Reserve 85+ for candidates who could be hired with minimal interview.
+
 Respond ONLY with valid JSON, no markdown, no explanation.`;
 
   try {
@@ -117,5 +126,40 @@ Respond ONLY with valid JSON, no markdown, no explanation.`;
   } catch (err) {
     console.error('Gemini gradeAnswer error:', err);
     throw new Error('Failed to grade answer. Please try again.');
+  }
+}
+
+export async function analyzeInterview(audioBase64, mimeType) {
+  const prompt = `You are an expert interview coach analyzing a recorded interview.
+
+Listen to this interview recording and evaluate the candidate's performance. Return ONLY a JSON object with this exact shape:
+{
+  "transcriptionSummary": <string: 3-5 sentence summary of what was discussed in the interview>,
+  "overallScore": <integer 1-10>,
+  "strengths": <array of 3-5 strings: specific things the candidate did well>,
+  "weaknesses": <array of 3-5 strings: specific areas for improvement>,
+  "suggestions": <array of 2-3 strings: concrete, actionable tips>,
+  "fillerWordCount": <integer: estimated count of filler words like um, uh, like, you know, so>,
+  "keyTopics": <array of 3-7 strings: main topics or skills discussed>
+}
+
+Scoring guide (be strict — most candidates score 5-7):
+- 9-10: Exceptional. Fluent, confident, highly specific answers with quantified outcomes, zero rambling.
+- 7-8: Good. Clear answers, relevant examples, minor filler words or vagueness.
+- 5-6: Average. Adequate answers but noticeable filler words, some vagueness, or missed opportunities.
+- 3-4: Weak. Significant filler words, unclear answers, or failure to address questions directly.
+- 1-2: Poor. Incoherent, extremely nervous, or barely responsive.
+
+Respond ONLY with valid JSON, no markdown, no explanation.`;
+
+  try {
+    const result = await model.generateContent([
+      { inlineData: { mimeType, data: audioBase64 } },
+      { text: prompt },
+    ]);
+    return parseJSON(result.response.text());
+  } catch (err) {
+    console.error('Gemini analyzeInterview error:', err);
+    throw new Error('Failed to analyze recording. Make sure the file is under 15 minutes and try again.');
   }
 }
