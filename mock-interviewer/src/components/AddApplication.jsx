@@ -64,7 +64,7 @@ export default function AddApplication() {
   return (
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <BackButton to="/applications" label="Back to Applications" />
+        <BackButton label="Back" />
 
         <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
           New Application

@@ -388,7 +388,7 @@ export default function ApplicationDetails() {
                     <button
                       aria-label="Delete session"
                       className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); if (confirm('Are you sure you want to delete this practice session?')) { deleteSessionFromApplication(id, session.id); } }}
+                      onClick={(e) => { e.stopPropagation(); if (confirm('Are you sure you want to delete this practice session?')) { deleteSessionFromApplication(id, session.id); setApp(prev => ({ ...prev, sessions: prev.sessions.filter(s => s.id !== session.id) })); } }}
                     >
                       <TrashIcon className="w-4 h-4" />
                     </button>

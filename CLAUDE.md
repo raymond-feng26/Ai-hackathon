@@ -160,6 +160,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [x] Fixed "Save as Application" not attaching interview session to new application
 - [x] Added delete button with confirm dialog on practice sessions in ApplicationDetails
 - [x] Added deleteSessionFromApplication to AppContext
+- [x] Calibrated analyzeResumeVsJD match score prompt (5-tier rubric, anti-inflation)
+- [x] Persist resume analysis in applications (AppContext.analysis field, flows from AnalysisResults/Summary → AddApplication → ApplicationDetails)
+- [x] Collapsible resume analysis section in ApplicationDetails with Run/Re-run Analysis
+- [x] Score guide popovers on InterviewSession and AnalysisResults pages
+- [x] Three-tab "How to Use" guide modal (Interview Simulation, Application Tracking, Interview Analysis)
+- [x] Redesigned Landing features section — 3 feature cards with CTAs replacing old How It Works
 
 #### Phase 6: Enhanced Interview Feedback
 - [x] Add weaknesses and suggestions to gradeAnswer
@@ -172,8 +178,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [x] Add microphone button to InterviewSession
 - [x] Real-time transcript display
 
-#### Phase 8: Recording Analysis (Future)
-- [ ] Deferred - requires external transcription API
+#### Phase 8: Recording Analysis
+- [x] Add analyzeInterview to gemini.js (multimodal audio + text prompt)
+- [x] Add mock analyzeInterview to mockAI.js
+- [x] Wire analyzeInterview through ai.js switcher
+- [x] Create RecordingAnalysis page with file upload, base64 conversion, report card display
+- [x] Add /analyze-recording route
+- [x] Add nav link in Landing page
 
 ---
 

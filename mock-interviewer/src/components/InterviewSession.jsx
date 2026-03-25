@@ -1,61 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
 import { gradeAnswer } from '../services/ai';
-import { getScoreColor } from '../utils/scoring';
+import { getScoreColor, INTERVIEW_SCORE_TIERS } from '../utils/scoring';
 import useSpeechToText from '../hooks/useSpeechToText';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import TextArea from './ui/TextArea';
+import ScoreGuidePopover from './ui/ScoreGuidePopover';
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   LightBulbIcon,
   ChatBubbleLeftIcon,
   MicrophoneIcon,
-  QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline';
-
-const INTERVIEW_SCORE_TIERS = [
-  { range: '9–10', label: 'Exceptional', desc: 'Quantified outcomes, perfect structure, nothing missing.', color: 'text-green-600' },
-  { range: '7–8',  label: 'Good',        desc: 'Solid content, specific examples, minor gaps.',           color: 'text-green-500' },
-  { range: '5–6',  label: 'Average',     desc: 'Some relevant content but lacks specifics or metrics.',   color: 'text-yellow-600' },
-  { range: '3–4',  label: 'Weak',        desc: 'Vague, generic, or missing concrete examples.',           color: 'text-orange-500' },
-  { range: '1–2',  label: 'Poor',        desc: 'Barely addresses the question.',                          color: 'text-red-600' },
-];
-
-function ScoreGuidePopover({ tiers }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    if (open) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-  return (
-    <div className="relative inline-flex items-center" ref={ref}>
-      <button onClick={() => setOpen(v => !v)} aria-label="Scoring guide" className="text-gray-400 hover:text-gray-600 transition-colors">
-        <QuestionMarkCircleIcon className="w-5 h-5" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-7 z-20 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Scoring Guide</p>
-          <div className="space-y-2">
-            {tiers.map(t => (
-              <div key={t.range} className="flex items-start gap-2">
-                <span className={`text-sm font-bold w-10 flex-shrink-0 ${t.color}`}>{t.range}</span>
-                <div>
-                  <span className="text-sm font-semibold text-gray-800">{t.label} — </span>
-                  <span className="text-sm text-gray-500">{t.desc}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function InterviewSession() {
   const navigate = useNavigate();

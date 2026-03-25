@@ -48,18 +48,14 @@ export default function RecordingAnalysis() {
     setError('');
 
     try {
+      const mimeType = file.type || 'audio/mpeg';
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          // strip "data:audio/...;base64," prefix
-          const dataUrl = reader.result;
-          resolve(dataUrl.split(',')[1]);
-        };
+        reader.onload = () => resolve(reader.result.split(',')[1]);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
 
-      const mimeType = file.type || 'audio/mpeg';
       const analysis = await analyzeInterview(base64, mimeType);
       setResult(analysis);
     } catch (err) {
