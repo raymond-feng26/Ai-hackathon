@@ -1,89 +1,128 @@
 # Mock Interviewer
 
-An AI-powered interview preparation tool that helps you ace your next interview.
+An AI-powered interview preparation and job application tracking tool. Upload your resume, paste a job description, and get instant analysis, tailored practice interviews with real-time grading, and recording analysis — all in the browser.
 
 ## Features
 
-- **Smart Resume Analysis**: Upload your resume PDF and compare it against job descriptions
-- **Match Scoring**: Get an instant compatibility score between your resume and the role
-- **Tailored Practice**: Choose from 3 interview rounds (Behavioral, Technical, Culture Fit)
-- **Real-time Feedback**: Receive instant AI-powered grading on your answers
-- **Actionable Insights**: See your overall performance and top areas to improve
+### Interview Preparation
+- **Resume Analysis** — Upload PDF/DOCX resumes and compare against job descriptions. Get a match score, keyword gap analysis, and suggested resume edits.
+- **3-Round Practice Interviews** — Behavioral, Technical, and Culture Fit rounds with AI-generated questions tailored to your resume and the job description.
+- **Real-Time Grading** — Each answer is graded instantly with strengths, weaknesses, and specific improvement suggestions.
+- **Voice Input** — Answer questions by voice using the browser's Web Speech API — no setup required.
+- **Session Summary** — Overall score, aggregated strengths/weaknesses, and top improvement areas after each session.
+
+### Recording Analysis
+- **Upload & Analyze** — Upload an audio recording of a real interview and get an AI-generated report card with feedback.
+
+### Job Application Tracker
+- **Application Dashboard** — Track applications through stages: Sent, Read, Interviewing, Interviewed, Offer.
+- **Resume Deck** — Save and manage up to 5 resumes for quick reuse across applications.
+- **Linked Practice Sessions** — Run practice interviews directly from an application and view past session results.
+- **Inline Editing** — Edit application details (company, role, JD, notes) without leaving the page.
+
+## Live Demo
+
+Deployed on Vercel: ai-hackathon-sable.vercel.app
 
 ## Getting Started
 
-The app is currently running with **mock AI responses** for development. You can test the full flow without needing an API key.
+### Prerequisites
+- Node.js 18+
+- A Google Gemini API key (free tier at [ai.google.dev](https://ai.google.dev/))
 
-### Current Status
+### Install & Run
 
-The development server is running at: **http://localhost:5173/**
+```bash
+cd mock-interviewer
+npm install
+```
 
-Open your browser and visit the link to try the application.
+Create a `.env` file:
 
-### Project Structure
+```
+VITE_GEMINI_API_KEY=your_key_here
+```
+
+Start the dev server:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+> Without an API key the app falls back to mock AI responses — useful for UI testing.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, React Router 7 |
+| Build | Vite |
+| Styling | Tailwind CSS 4 |
+| AI | Google Gemini 2.5 Flash (`@google/generative-ai`) |
+| Speech-to-Text | Browser Web Speech API |
+| PDF Parsing | pdf.js |
+| DOCX Parsing | Mammoth |
+| Icons | Heroicons |
+| Persistence | localStorage |
+| Deployment | Vercel |
+
+## Project Structure
 
 ```
 mock-interviewer/
 ├── src/
-│   ├── components/          # React components
-│   │   ├── ui/             # Reusable UI components
-│   │   ├── Landing.jsx     # Hero page
-│   │   ├── ResumeUpload.jsx
-│   │   ├── AnalysisResults.jsx
-│   │   ├── RoundSelector.jsx
-│   │   ├── InterviewSession.jsx
-│   │   └── Summary.jsx
-│   ├── services/           # Business logic
-│   │   ├── mockAI.js      # Mock responses (currently active)
-│   │   ├── ai.js          # AI service switcher
-│   │   └── pdfParser.js   # PDF text extraction
-│   ├── context/           # Global state
-│   └── hooks/             # Custom React hooks
-├── .env.example           # Template for API key
-└── README.md
+│   ├── components/             # Page-level components
+│   │   ├── ui/                 # Reusable UI (Button, Card, BackButton, etc.)
+│   │   ├── Landing.jsx         # Hero page with feature cards
+│   │   ├── ResumeUpload.jsx    # Resume + JD input
+│   │   ├── AnalysisResults.jsx # Match score & gap analysis
+│   │   ├── RoundSelector.jsx   # Interview round picker
+│   │   ├── InterviewSession.jsx# Live Q&A with grading
+│   │   ├── Summary.jsx         # Post-interview report
+│   │   ├── RecordingAnalysis.jsx# Upload & analyze interview recordings
+│   │   ├── ResumeDeck.jsx      # Saved resume manager
+│   │   ├── ApplicationTracker.jsx # Application dashboard
+│   │   ├── AddApplication.jsx  # New application form
+│   │   └── ApplicationDetails.jsx # Single application view
+│   ├── services/
+│   │   ├── ai.js               # AI service switcher (mock vs Gemini)
+│   │   ├── gemini.js           # Google Gemini API calls
+│   │   ├── mockAI.js           # Mock responses for development
+│   │   ├── pdfParser.js        # PDF text extraction
+│   │   └── resumeParser.js     # Resume file handling
+│   ├── context/
+│   │   ├── AppContext.jsx       # Global state (resumes, applications, localStorage)
+│   │   └── InterviewContext.jsx # Interview session state
+│   ├── hooks/
+│   │   └── useSpeechToText.js   # Web Speech API hook
+│   └── utils/                   # Shared helpers (scoring, dates, rounds, status)
+├── index.html
+├── vite.config.js
+├── tailwind.config.js
+└── vercel.json                  # SPA rewrites for Vercel
 ```
-
-## Adding Real AI (Optional)
-
-To use the real Google Gemini API instead of mock data:
-
-1. Get an API key from [https://ai.google.dev/](https://ai.google.dev/)
-2. Create a `.env` file in the project root
-3. Add: `VITE_GEMINI_API_KEY=your_actual_key_here`
-4. Install Gemini SDK: `npm install @google/generative-ai`
-5. Create `src/services/gemini.js` with real API implementation
-6. Restart the dev server
-
-The app will automatically detect the API key and switch from mock to real AI.
 
 ## User Flow
 
-1. **Landing** → Click "Get Started"
-2. **Upload** → Drag & drop your resume PDF + paste job description
-3. **Analysis** → View match score, missing keywords, and strengths
-4. **Setup** → Choose interview round (Behavioral/Technical/Culture Fit)
-5. **Interview** → Answer 5 questions, get graded instantly
-6. **Summary** → See overall score + top 3 improvement areas
+1. **Landing** — Choose: start a new interview, manage applications, manage resumes, or analyze a recording
+2. **Upload** — Drag-drop resume (PDF/DOCX) + paste job description
+3. **Analysis** — View match score, keyword gaps, strengths, and suggested resume edits
+4. **Round Select** — Pick Behavioral, Technical, or Culture Fit
+5. **Interview** — Answer 5 AI-generated questions (text or voice), get graded in real time
+6. **Summary** — Overall score, strengths, weaknesses, and top 3 improvements
+7. **Save** — Optionally save as a tracked application
 
-## Development Commands
+## Development
 
 ```bash
-npm run dev      # Start dev server (already running)
-npm run build    # Build for production
-npm run preview  # Preview production build
+npm run dev       # Start dev server
+npm run build     # Production build
+npm run preview   # Preview production build
+npm run lint      # Run ESLint
 ```
 
-## Tech Stack
+## License
 
-- **React + Vite**: Fast, modern development
-- **Tailwind CSS**: Professional, responsive styling
-- **React Router**: Page navigation
-- **PDF.js**: Resume text extraction
-- **Google Gemini**: AI-powered analysis (when API key added)
-
-## Notes
-
-- Currently using **mock AI data** - perfect for testing the UI/UX
-- All 5 phases of core functionality are complete
-- Ready for demo and further enhancement
-- Can add voice input and other features as needed
+MIT
