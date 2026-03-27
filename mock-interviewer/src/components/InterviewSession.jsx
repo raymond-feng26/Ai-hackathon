@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
 import { gradeAnswer } from '../services/ai';
@@ -14,7 +14,12 @@ import {
   LightBulbIcon,
   ChatBubbleLeftIcon,
   MicrophoneIcon,
+  ClockIcon,
+  PlayIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
+
+const TIMER_PRESETS = [30, 60, 90, 120, 180, 300];
 
 export default function InterviewSession() {
   const navigate = useNavigate();
@@ -44,6 +49,50 @@ export default function InterviewSession() {
     stopListening,
     resetTranscript
   } = useSpeechToText();
+
+  // Timer state
+  const [timerDuration, setTimerDuration] = useState(90); // default 90s
+  const [timeLeft, setTimeLeft] = useState(null); // null = not started
+  const [timerRunning, setTimerRunning] = useState(false);
+  const timerRef = useRef(null);
+
+  const startTimer = useCallback(() => {
+    setTimeLeft(timerDuration);
+    setTimerRunning(true);
+  }, [timerDuration]);
+
+  const resetTimer = useCallback(() => {
+    clearInterval(timerRef.current);
+    setTimeLeft(null);
+    setTimerRunning(false);
+  }, []);
+
+  // Tick the timer
+  useEffect(() => {
+    if (!timerRunning) return;
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          setTimerRunning(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [timerRunning]);
+
+  // Reset timer on question change
+  useEffect(() => {
+    resetTimer();
+  }, [currentQuestionIndex, resetTimer]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   // Update answer when transcript changes
   useEffect(() => {
@@ -145,6 +194,49 @@ export default function InterviewSession() {
             {currentQuestion}
           </h2>
         </Card>
+
+        {/* Timer */}
+        {!showFeedback && (
+          <div className="mb-6 flex items-center justify-center gap-3">
+            <ClockIcon className="w-5 h-5 text-gray-400" />
+            {timeLeft === null ? (
+              <>
+                <select
+                  value={timerDuration}
+                  onChange={(e) => setTimerDuration(Number(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {TIMER_PRESETS.map(s => (
+                    <option key={s} value={s}>{formatTime(s)}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={startTimer}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                >
+                  <PlayIcon className="w-4 h-4" />
+                  Start Timer
+                </button>
+              </>
+            ) : (
+              <>
+                <span className={`text-2xl font-mono font-semibold tabular-nums ${
+                  timeLeft === 0 ? 'text-red-500' : timeLeft <= 10 ? 'text-orange-500' : 'text-gray-800'
+                }`}>
+                  {formatTime(timeLeft)}
+                </span>
+                <button
+                  onClick={resetTimer}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Reset timer"
+                >
+                  <ArrowPathIcon className="w-4 h-4" />
+                  Reset
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Answer Input */}
         {!showFeedback ? (
