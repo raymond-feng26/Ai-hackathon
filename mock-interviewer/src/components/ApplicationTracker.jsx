@@ -1,168 +1,170 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import { useApp } from '../context/AppContext';
-import { STATUS_CONFIG } from '../utils/applicationStatus';
-import { formatDate } from '../utils/dateFormatters';
-import Button from './ui/Button';
-import Card from './ui/Card';
 import {
-  BriefcaseIcon,
-  PlusIcon,
-  TrashIcon,
-  ChevronRightIcon
-} from '@heroicons/react/24/outline';
+  filterOpportunities,
+  getOpportunitySummary,
+  QUICK_VIEWS,
+  sortOpportunities
+} from '../utils/opportunityData.js';
+import {
+  exportOpportunitiesCsv,
+  importOpportunitiesCsv
+} from '../utils/opportunityCsv.js';
+import {
+  parseFullBackup,
+  serializeFullBackup
+} from '../utils/backup.js';
+import {
+  ApplicationDataMenu,
+  DEFAULT_OPPORTUNITY_FILTERS,
+  OpportunityFilters,
+  OpportunitySummary,
+  OpportunityTable,
+  QuickAddForm
+} from './applications';
 
 export default function ApplicationTracker() {
-  const { applications, deleteApplication, updateApplication } = useApp();
-  const [filter, setFilter] = useState('all');
+  const {
+    applications,
+    resumes,
+    addApplication,
+    updateApplication,
+    archiveApplication,
+    restoreApplication,
+    importApplications,
+    restoreAllData,
+    isLoaded,
+    storageError,
+    storageWarnings,
+    clearStorageMessages
+  } = useApp();
+  const [filters, setFilters] = useState(DEFAULT_OPPORTUNITY_FILTERS);
 
-  const handleDelete = (e, id) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (confirm('Are you sure you want to delete this application?')) {
-      deleteApplication(id);
+  const visibleOpportunities = useMemo(
+    () => sortOpportunities(filterOpportunities(applications, filters)),
+    [applications, filters]
+  );
+
+  const summary = useMemo(
+    () => getOpportunitySummary(applications),
+    [applications]
+  );
+
+  const viewCounts = useMemo(() => Object.keys(QUICK_VIEWS).reduce((counts, view) => ({
+    ...counts,
+    [view]: filterOpportunities(applications, { view }).length
+  }), {}), [applications]);
+
+  const handleQuickAdd = (data) => {
+    addApplication(data);
+    if (filters.view === 'archived') {
+      setFilters({ ...DEFAULT_OPPORTUNITY_FILTERS, view: 'all' });
+    }
+    return true;
+  };
+
+  const handleArchive = (id) => {
+    const opportunity = applications.find(item => item.id === id);
+    if (!opportunity) return;
+    if (window.confirm(`Archive ${opportunity.company} — ${opportunity.role}? You can restore it from the Archived view.`)) {
+      archiveApplication(id);
     }
   };
 
-  const handleStatusChange = (e, id) => {
-    e.stopPropagation();
-    e.preventDefault();
-    updateApplication(id, { status: e.target.value });
+  const handleImportCsv = (text) => {
+    const parsed = importOpportunitiesCsv(text, applications);
+    const imported = importApplications(parsed.opportunities);
+
+    if (parsed.opportunities.length === 0 && parsed.errors.length > 0) {
+      throw new Error(parsed.errors.map(error => error.message).join(' '));
+    }
+
+    return {
+      imported: imported.imported,
+      skipped: parsed.rowsSkipped + imported.skipped,
+      warnings: parsed.warnings,
+      errors: parsed.errors
+    };
   };
 
-  const filteredApps = filter === 'all'
-    ? applications
-    : applications.filter(app => app.status === filter);
+  const handleRestore = (text) => {
+    const parsed = parseFullBackup(text);
+    if (!parsed.ok) throw new Error(parsed.errors.join(' '));
 
-  const sortedApps = [...filteredApps].sort((a, b) => b.updatedAt - a.updatedAt);
+    const restored = restoreAllData(parsed);
+    return {
+      message: `Restored ${restored.opportunities} opportunities and ${restored.resumes} resumes${
+        parsed.warnings.length ? ` with ${parsed.warnings.length} warning${parsed.warnings.length === 1 ? '' : 's'}` : ''
+      }.`
+    };
+  };
 
   return (
-    <div className="min-h-screen py-12 px-4">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1600px]">
+        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Applications
+            <Link to="/" className="mb-2 inline-block text-sm font-medium text-gray-500 hover:text-primary">
+              ← Home
+            </Link>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Opportunity Tracker
             </h1>
-            <p className="text-gray-600">
-              Track your job applications
+            <p className="mt-1 max-w-2xl text-sm text-gray-600 sm:text-base">
+              A focused workspace for finding, qualifying, applying to, and following up on 2027 internships.
             </p>
           </div>
-          <Button to="/applications/new">
-            <PlusIcon className="w-5 h-5 mr-2 inline" />
-            New Application
-          </Button>
-        </div>
+          <div className="flex items-center gap-2">
+            <ApplicationDataMenu
+              disabled={!isLoaded}
+              onExportCsv={() => exportOpportunitiesCsv(applications)}
+              onImportCsv={handleImportCsv}
+              onBackup={() => serializeFullBackup({ opportunities: applications, resumes })}
+              onRestore={handleRestore}
+            />
+            <Link
+              to="/applications/new"
+              className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              <PlusIcon className="mr-1.5 h-4 w-4" />
+              Full entry
+            </Link>
+          </div>
+        </header>
 
-        {/* Filters */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All ({applications.length})
-          </button>
-          {Object.entries(STATUS_CONFIG).map(([key, config]) => {
-            const count = applications.filter(app => app.status === key).length;
-            return (
-              <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  filter === key
-                    ? 'bg-primary text-white'
-                    : `${config.color} hover:opacity-80`
-                }`}
-              >
-                {config.label} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {sortedApps.length === 0 ? (
-          <Card className="text-center py-12">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <BriefcaseIcon className="w-8 h-8 text-gray-400" />
-              </div>
+        {(storageError || storageWarnings.length > 0) && (
+          <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            storageError
+              ? 'border-red-200 bg-red-50 text-red-800'
+              : 'border-yellow-200 bg-yellow-50 text-yellow-800'
+          }`} role={storageError ? 'alert' : 'status'}>
+            <div className="flex items-start justify-between gap-4">
+              <p>{storageError || storageWarnings.join(' ')}</p>
+              <button type="button" onClick={clearStorageMessages} className="font-medium underline">Dismiss</button>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {filter === 'all' ? 'No applications yet' : `No ${STATUS_CONFIG[filter]?.label.toLowerCase()} applications`}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {filter === 'all'
-                ? 'Start tracking your job applications'
-                : 'Try a different filter'}
-            </p>
-            {filter === 'all' && (
-              <Button to="/applications/new">
-                Add Application
-              </Button>
-            )}
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {sortedApps.map(app => (
-              <Link key={app.id} to={`/applications/${app.id}`} className="block">
-              <Card
-                className="hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <BriefcaseIcon className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-semibold text-gray-900 truncate">
-                        {app.company}
-                      </h3>
-                      <select
-                        value={app.status}
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onChange={(e) => handleStatusChange(e, app.id)}
-                        className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${STATUS_CONFIG[app.status].color}`}
-                      >
-                        {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                          <option key={key} value={key}>{config.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <p className="text-sm text-gray-600 truncate">{app.role}</p>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
-                      <span>Applied {formatDate(app.appliedAt)}</span>
-                      {app.sessions.length > 0 && (
-                        <span>{app.sessions.length} practice session{app.sessions.length !== 1 ? 's' : ''}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => handleDelete(e, app.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
-                    <ChevronRightIcon className="w-5 h-5 text-gray-400" />
-                  </div>
-                </div>
-              </Card>
-              </Link>
-            ))}
           </div>
         )}
 
-        <div className="flex justify-center mt-8">
-          <Button variant="outline" to="/">
-            Back to Home
-          </Button>
+        <div className="space-y-4">
+          <OpportunitySummary opportunities={applications} summary={summary} />
+          <QuickAddForm onAdd={handleQuickAdd} disabled={!isLoaded} />
+          <OpportunityFilters
+            filters={filters}
+            onChange={setFilters}
+            onClear={() => setFilters(DEFAULT_OPPORTUNITY_FILTERS)}
+            viewCounts={viewCounts}
+          />
+          <OpportunityTable
+            opportunities={visibleOpportunities}
+            onUpdate={updateApplication}
+            onArchive={handleArchive}
+            onRestore={restoreApplication}
+            disabled={!isLoaded}
+          />
         </div>
       </div>
-    </div>
+    </main>
   );
 }

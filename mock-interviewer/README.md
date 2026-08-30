@@ -1,127 +1,140 @@
-# Mock Interviewer
+# 2027 Internship Workspace
 
-An AI-powered interview preparation and job application tracking tool. Upload your resume, paste a job description, and get instant analysis, tailored practice interviews with real-time grading, and recording analysis — all in the browser.
+A local-first opportunity tracker for a 2027 Summer Internship search, with the project's existing AI resume analysis, interview practice, and recording analysis kept as linked secondary tools.
 
-## Features
-
-### Interview Preparation
-- **Resume Analysis** — Upload PDF/DOCX resumes and compare against job descriptions. Get a match score, keyword gap analysis, and suggested resume edits.
-- **3-Round Practice Interviews** — Behavioral, Technical, and Culture Fit rounds with AI-generated questions tailored to your resume and the job description.
-- **Real-Time Grading** — Each answer is graded instantly with strengths, weaknesses, and specific improvement suggestions.
-- **Voice Input** — Answer questions by voice using the browser's Web Speech API — no setup required.
-- **Session Summary** — Overall score, aggregated strengths/weaknesses, and top improvement areas after each session.
-
-### Recording Analysis
-- **Upload & Analyze** — Upload an audio recording of a real interview and get an AI-generated report card with feedback.
-
-### Job Application Tracker
-- **Application Dashboard** — Track applications through stages: Sent, Read, Interviewing, Interviewed, Offer.
-- **Resume Deck** — Save and manage up to 5 resumes for quick reuse across applications.
-- **Linked Practice Sessions** — Run practice interviews directly from an application and view past session results.
-- **Inline Editing** — Edit application details (company, role, JD, notes) without leaving the page.
+The primary `/applications` workspace is designed as a more useful job-search spreadsheet: capture roles before they open, triage F-1 eligibility and export-control constraints, manage referrals and deadlines, track next actions, and keep the General SWE / AI Systems / Robotics application mix visible.
 
 ## Live Demo
 
-Deployed on Vercel: ai-hackathon-sable.vercel.app
+[ai-hackathon-sable.vercel.app](https://ai-hackathon-sable.vercel.app)
+
+Data is stored in `localStorage`, so each browser origin has its own data. Production and Vercel Preview URLs do not share records. Use the JSON full-backup feature before clearing browser data or moving to another browser/device.
+
+## Features
+
+### Opportunity tracking
+
+- Dense desktop table with a compact mobile-card fallback
+- Quick Add for company, role, and optional job URL
+- Stages from `watching` and `saved` through `offer`, `rejected`, and `closed`
+- Inline stage, track, priority, and eligibility editing
+- F-1-focused eligibility reasons including sponsorship, U.S. person, citizenship, and export control
+- Search, facet filters, and quick views for To Apply, Active, Visa Review, Watching, and Archived
+- Deadline and next-action urgency, default priority sorting, and weekly/application-mix summaries
+- Soft archive/restore and an activity timeline with stage-change and manual-note events
+- Versioned migration from the legacy `sent/read/interviewing/interviewed` model
+
+### Data safety
+
+- CSV export of every non-archived opportunity's core spreadsheet fields
+- CSV import with defaults, row-level error isolation, RFC 4180 quoting, UTF-8 BOM, and spreadsheet-formula protection
+- Full JSON backup/restore for job descriptions, events, sessions, analyses, and resumes
+- Date-stamped export filenames and validation before a destructive restore
+
+### Resume deck
+
+- Unlimited named resume versions
+- Target-track labels for General SWE, AI Systems/GPU, Robotics/Research, and General
+- Archive/restore instead of destructive deletion
+- Opportunity-level resume-name snapshots, so history survives later renames or archival
+
+### Secondary interview tools
+
+- PDF/DOCX resume parsing and job-description match analysis
+- Behavioral, technical, and culture-fit practice rounds with per-answer feedback
+- Practice sessions linked back to an opportunity
+- Audio recording analysis
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- A Google Gemini API key (free tier at [ai.google.dev](https://ai.google.dev/))
 
-### Install & Run
+- Node.js 20.19+ (Node 22 LTS is recommended for Vite 8)
+- npm
+- Optional AI provider credentials for live AI responses
+
+Install and run:
 
 ```bash
 cd mock-interviewer
 npm install
-```
-
-Create a `.env` file:
-
-```
-VITE_GEMINI_API_KEY=your_key_here
-```
-
-Start the dev server:
-
-```bash
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173).
 
-> Without an API key the app falls back to mock AI responses — useful for UI testing.
+Without a configured AI key, interview features fall back to mock responses. The opportunity tracker, CSV, JSON backup, and resume organization do not require an API key.
 
-## Tech Stack
+## Environment Variables and Security
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, React Router 7 |
-| Build | Vite |
-| Styling | Tailwind CSS 4 |
-| AI | Google Gemini 2.5 Flash (`@google/generative-ai`) |
-| Speech-to-Text | Browser Web Speech API |
-| PDF Parsing | pdf.js |
-| DOCX Parsing | Mammoth |
-| Icons | Heroicons |
-| Persistence | localStorage |
-| Deployment | Vercel |
+The current client can select Gemini with:
+
+```text
+VITE_GEMINI_API_KEY=your_key_here
+```
+
+Any `VITE_*` value is embedded into the browser bundle by Vite. That means `VITE_GEMINI_API_KEY` is not secret in a production deployment. Restrict and rotate deployed credentials; a future security pass should move provider calls behind a server-side endpoint. This repository intentionally does not change that AI behavior in the tracker refactor.
+
+## Validation
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+Pure-function tests cover schema migration, stage events, search/sort/filter behavior, duplicate detection, CSV round trips and malformed rows, JSON backup/restore, date safety, and resume migration.
+
+## Deployment on Vercel
+
+The Vercel project's **Root Directory must be `mock-interviewer`** because `package.json` and `vercel.json` live in this folder. The checked-in rewrite keeps React Router deep links working:
+
+```json
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
+
+Vercel can use the standard commands:
+
+- Build command: `npm run build`
+- Output directory: `dist`
+
+CSV and JSON operations run entirely in the browser; they do not require a Vercel Function.
 
 ## Project Structure
 
-```
-mock-interviewer/
-├── src/
-│   ├── components/             # Page-level components
-│   │   ├── ui/                 # Reusable UI (Button, Card, BackButton, etc.)
-│   │   ├── Landing.jsx         # Hero page with feature cards
-│   │   ├── ResumeUpload.jsx    # Resume + JD input
-│   │   ├── AnalysisResults.jsx # Match score & gap analysis
-│   │   ├── RoundSelector.jsx   # Interview round picker
-│   │   ├── InterviewSession.jsx# Live Q&A with grading
-│   │   ├── Summary.jsx         # Post-interview report
-│   │   ├── RecordingAnalysis.jsx# Upload & analyze interview recordings
-│   │   ├── ResumeDeck.jsx      # Saved resume manager
-│   │   ├── ApplicationTracker.jsx # Application dashboard
-│   │   ├── AddApplication.jsx  # New application form
-│   │   └── ApplicationDetails.jsx # Single application view
-│   ├── services/
-│   │   ├── ai.js               # AI service switcher (mock vs Gemini)
-│   │   ├── gemini.js           # Google Gemini API calls
-│   │   ├── mockAI.js           # Mock responses for development
-│   │   ├── pdfParser.js        # PDF text extraction
-│   │   └── resumeParser.js     # Resume file handling
-│   ├── context/
-│   │   ├── AppContext.jsx       # Global state (resumes, applications, localStorage)
-│   │   └── InterviewContext.jsx # Interview session state
-│   ├── hooks/
-│   │   └── useSpeechToText.js   # Web Speech API hook
-│   └── utils/                   # Shared helpers (scoring, dates, rounds, status)
-├── index.html
-├── vite.config.js
-├── tailwind.config.js
-└── vercel.json                  # SPA rewrites for Vercel
+```text
+src/
+├── components/
+│   ├── applications/       # Table, filters, Quick Add, summary, data menu, timeline/form helpers
+│   ├── ApplicationTracker.jsx
+│   ├── AddApplication.jsx
+│   ├── ApplicationDetails.jsx
+│   ├── ResumeDeck.jsx
+│   └── ...                 # Existing interview and recording tools
+├── context/
+│   ├── AppContext.jsx      # React-facing opportunity/resume operations
+│   └── InterviewContext.jsx
+├── domain/
+│   ├── opportunity.js      # Schema, enums, defaults, normalization
+│   └── resume.js
+├── storage/
+│   └── appStorage.js       # localStorage adapter
+├── utils/
+│   ├── opportunityData.js  # Migration, events, duplicate detection, filters/sort/summary
+│   ├── opportunityCsv.js
+│   ├── backup.js
+│   └── *.test.js
+└── services/               # Existing AI and parser services
 ```
 
-## User Flow
+## Data Model Notes
 
-1. **Landing** — Choose: start a new interview, manage applications, manage resumes, or analyze a recording
-2. **Upload** — Drag-drop resume (PDF/DOCX) + paste job description
-3. **Analysis** — View match score, keyword gaps, strengths, and suggested resume edits
-4. **Round Select** — Pick Behavioral, Technical, or Culture Fit
-5. **Interview** — Answer 5 AI-generated questions (text or voice), get graded in real time
-6. **Summary** — Overall score, strengths, weaknesses, and top 3 improvements
-7. **Save** — Optionally save as a tracked application
-
-## Development
-
-```bash
-npm run dev       # Start dev server
-npm run build     # Production build
-npm run preview   # Preview production build
-npm run lint      # Run ESLint
-```
+- New opportunities default to `stage: saved`; `appliedAt` stays `null` until entering Applied, OA, Interview, or Offer.
+- Every stage change appends an immutable timeline event with the previous stage, next stage, and timestamp.
+- Legacy records are normalized field-by-field on load. Missing arrays/objects receive safe defaults, while job descriptions, notes, resume links, sessions, and analyses are preserved.
+- Opportunity deletion is a soft archive. Archived rows are hidden from normal views and CSV exports but remain in full JSON backups.
 
 ## License
 

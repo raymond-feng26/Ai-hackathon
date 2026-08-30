@@ -1,197 +1,354 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
+import {
+  createOpportunity,
+  generateId,
+  normalizeOpportunity
+} from '../domain/opportunity.js';
+import {
+  createResume,
+  createResumeSnapshot,
+  normalizeResume
+} from '../domain/resume.js';
+import {
+  addTimelineNote as appendTimelineNote,
+  appendReferralRequest,
+  appendStageChange,
+  archiveOpportunity,
+  backfillResumeNameSnapshots,
+  migrateOpportunities,
+  prepareOpportunityImport,
+  shouldRefreshResumeSnapshot,
+  restoreOpportunity
+} from '../utils/opportunityData.js';
+import {
+  loadAppStorage,
+  saveOpportunities,
+  saveResumes
+} from '../storage/appStorage.js';
 
-const AppContext = createContext();
+const AppContext = createContext(null);
 
-const STORAGE_KEYS = {
-  resumes: 'mock_interviewer_resumes',
-  applications: 'mock_interviewer_applications'
-};
+const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 
-const MAX_RESUMES = 5;
-
-// Generate unique ID
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-// Load from localStorage
-const loadFromStorage = (key) => {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
-
-// Save to localStorage
-const saveToStorage = (key, data) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save to localStorage:', error);
-  }
+const loadInitialState = () => {
+  const stored = loadAppStorage();
+  const now = Date.now();
+  const resumes = stored.resumes.map(resume => normalizeResume(resume, { now }));
+  const applications = backfillResumeNameSnapshots(
+    migrateOpportunities(stored.opportunities, { now }),
+    resumes
+  );
+  return {
+    resumes,
+    applications,
+    warnings: stored.warnings
+  };
 };
 
 export function AppProvider({ children }) {
-  const [resumes, setResumes] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [initialState] = useState(loadInitialState);
+  const [resumes, setResumes] = useState(initialState.resumes);
+  const [applications, setApplications] = useState(initialState.applications);
+  const [storageError, setStorageError] = useState('');
+  const [storageWarnings, setStorageWarnings] = useState(initialState.warnings);
+  const isLoaded = true;
 
-  // Load data from localStorage on mount
   useEffect(() => {
-    setResumes(loadFromStorage(STORAGE_KEYS.resumes));
-    setApplications(loadFromStorage(STORAGE_KEYS.applications));
-    setIsLoaded(true);
+    try {
+      saveResumes(resumes);
+    } catch (error) {
+      queueMicrotask(() => setStorageError(error.message));
+    }
+  }, [resumes]);
+
+  useEffect(() => {
+    try {
+      saveOpportunities(applications);
+    } catch (error) {
+      queueMicrotask(() => setStorageError(error.message));
+    }
+  }, [applications]);
+
+  const clearStorageMessages = useCallback(() => {
+    setStorageError('');
+    setStorageWarnings([]);
   }, []);
 
-  // Save resumes when changed
-  useEffect(() => {
-    if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.resumes, resumes);
-    }
-  }, [resumes, isLoaded]);
-
-  // Save applications when changed
-  useEffect(() => {
-    if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.applications, applications);
-    }
-  }, [applications, isLoaded]);
-
-  // Resume operations
-  const addResume = (text, fileName) => {
-    const newResume = {
-      id: generateId(),
-      name: fileName.replace(/\.(pdf|docx)$/i, ''),
+  const addResume = useCallback((text, fileName, options = {}) => {
+    const resume = createResume({
       text,
       fileName,
-      uploadedAt: Date.now()
-    };
-
-    setResumes(prev => {
-      // If at max capacity, remove oldest
-      const updated = [...prev];
-      if (updated.length >= MAX_RESUMES) {
-        updated.sort((a, b) => a.uploadedAt - b.uploadedAt);
-        updated.shift(); // Remove oldest
-      }
-      return [...updated, newResume];
+      displayName: options.displayName,
+      targetTrack: options.targetTrack
     });
+    setStorageError('');
+    setResumes(previous => [...previous, resume]);
+    return resume.id;
+  }, []);
 
-    return newResume.id;
-  };
-
-  const deleteResume = (id) => {
-    setResumes(prev => prev.filter(r => r.id !== id));
-    // Also remove from any applications that reference it
-    setApplications(prev => prev.map(app =>
-      app.resumeId === id ? { ...app, resumeId: null } : app
-    ));
-  };
-
-  const getResume = (id) => resumes.find(r => r.id === id);
-
-  // Application operations
-  const addApplication = (data) => {
-    const newApp = {
-      id: generateId(),
-      company: data.company,
-      role: data.role,
-      jobDescription: data.jobDescription,
-      resumeId: data.resumeId || null,
-      status: data.status || 'sent',
-      appliedAt: data.appliedAt || Date.now(),
-      updatedAt: Date.now(),
-      interviewDate: data.interviewDate || null,
-      sessions: [],
-      notes: data.notes || '',
-      analysis: data.analysis || null
-    };
-
-    setApplications(prev => [...prev, newApp]);
-    return newApp.id;
-  };
-
-  const updateApplication = (id, data) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id === id) {
-        return {
-          ...app,
-          ...data,
-          updatedAt: Date.now()
-        };
-      }
-      return app;
+  const updateResume = useCallback((id, patch) => {
+    const now = Date.now();
+    setStorageError('');
+    setResumes(previous => previous.map((resume) => {
+      if (resume.id !== id) return resume;
+      return normalizeResume({
+        ...resume,
+        ...patch,
+        name: patch.displayName ?? patch.name ?? resume.displayName,
+        updatedAt: now
+      }, { now });
     }));
-  };
+  }, []);
 
-  const deleteApplication = (id) => {
-    setApplications(prev => prev.filter(app => app.id !== id));
-  };
+  const archiveResume = useCallback((id) => {
+    updateResume(id, { archivedAt: Date.now() });
+  }, [updateResume]);
 
-  const getApplication = (id) => applications.find(app => app.id === id);
+  const restoreResume = useCallback((id) => {
+    updateResume(id, { archivedAt: null });
+  }, [updateResume]);
 
-  const addSessionToApplication = (appId, sessionData) => {
+  const getResume = useCallback(
+    id => resumes.find(resume => resume.id === id),
+    [resumes]
+  );
+
+  const activeResumes = useMemo(
+    () => resumes.filter(resume => !resume.archivedAt),
+    [resumes]
+  );
+
+  const addApplication = useCallback((data) => {
+    const now = Date.now();
+    const linkedResume = data.resumeId
+      ? resumes.find(resume => resume.id === data.resumeId)
+      : null;
+    const snapshot = linkedResume ? createResumeSnapshot(linkedResume) : {};
+    const opportunity = createOpportunity({ ...data, ...snapshot }, { now });
+
+    setStorageError('');
+    setApplications(previous => [...previous, opportunity]);
+    return opportunity.id;
+  }, [resumes]);
+
+  const updateApplication = useCallback((id, data) => {
+    const now = Date.now();
+    setStorageError('');
+    setApplications(previous => previous.map((opportunity) => {
+      if (opportunity.id !== id) return opportunity;
+
+      let next = opportunity;
+      const stageChanged = hasOwn(data, 'stage') && data.stage !== opportunity.stage;
+      if (stageChanged) {
+        next = appendStageChange(next, data.stage, { now });
+      }
+
+      const patch = { ...data };
+      if (stageChanged) delete patch.stage;
+
+      if (shouldRefreshResumeSnapshot(opportunity, data)) {
+        const nextResumeId = hasOwn(data, 'resumeId') ? data.resumeId : opportunity.resumeId;
+        const linkedResume = resumes.find(resume => resume.id === nextResumeId);
+        if (linkedResume) Object.assign(patch, createResumeSnapshot(linkedResume));
+      }
+
+      const referralWasRequested = data.referralStatus === 'requested'
+        && opportunity.referralStatus !== 'requested';
+      if (referralWasRequested) {
+        next = appendReferralRequest(next, {
+          now,
+          timestamp: data.referralRequestedAt ?? now,
+          referralContact: data.referralContact ?? next.referralContact
+        });
+        patch.referralRequestedAt = next.referralRequestedAt;
+        patch.events = next.events;
+      } else if (stageChanged) {
+        patch.events = next.events;
+      }
+
+      return normalizeOpportunity({
+        ...next,
+        ...patch,
+        updatedAt: now,
+        lastActivityAt: stageChanged || referralWasRequested
+          ? now
+          : (data.lastActivityAt ?? now)
+      }, { now });
+    }));
+  }, [resumes]);
+
+  const archiveApplication = useCallback((id) => {
+    const now = Date.now();
+    setStorageError('');
+    setApplications(previous => previous.map(opportunity => (
+      opportunity.id === id ? archiveOpportunity(opportunity, { now }) : opportunity
+    )));
+  }, []);
+
+  const restoreApplication = useCallback((id) => {
+    const now = Date.now();
+    setStorageError('');
+    setApplications(previous => previous.map(opportunity => (
+      opportunity.id === id ? restoreOpportunity(opportunity, { now }) : opportunity
+    )));
+  }, []);
+
+  const getApplication = useCallback(
+    id => applications.find(opportunity => opportunity.id === id),
+    [applications]
+  );
+
+  const addTimelineNote = useCallback((applicationId, note, timestamp) => {
+    const now = Date.now();
+    setStorageError('');
+    setApplications(previous => previous.map(opportunity => (
+      opportunity.id === applicationId
+        ? appendTimelineNote(opportunity, note, {
+          now,
+          timestamp: timestamp ?? now
+        })
+        : opportunity
+    )));
+  }, []);
+
+  const addSessionToApplication = useCallback((applicationId, sessionData) => {
+    const now = Date.now();
     const session = {
-      id: generateId(),
+      id: generateId('session', now),
       ...sessionData,
-      completedAt: Date.now()
+      completedAt: sessionData.completedAt ?? now
     };
 
-    setApplications(prev => prev.map(app => {
-      if (app.id === appId) {
-        return {
-          ...app,
-          sessions: [...app.sessions, session],
-          updatedAt: Date.now()
-        };
-      }
-      return app;
+    setStorageError('');
+    setApplications(previous => previous.map((opportunity) => {
+      if (opportunity.id !== applicationId) return opportunity;
+      return normalizeOpportunity({
+        ...opportunity,
+        sessions: [...opportunity.sessions, session],
+        lastActivityAt: now,
+        updatedAt: now
+      }, { now });
     }));
 
     return session.id;
-  };
+  }, []);
 
-  const deleteSessionFromApplication = (appId, sessionId) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id === appId) {
-        return { ...app, sessions: app.sessions.filter(s => s.id !== sessionId), updatedAt: Date.now() };
-      }
-      return app;
+  const deleteSessionFromApplication = useCallback((applicationId, sessionId) => {
+    const now = Date.now();
+    setStorageError('');
+    setApplications(previous => previous.map((opportunity) => {
+      if (opportunity.id !== applicationId) return opportunity;
+      return normalizeOpportunity({
+        ...opportunity,
+        sessions: opportunity.sessions.filter(session => session.id !== sessionId),
+        updatedAt: now
+      }, { now });
     }));
-  };
+  }, []);
 
-  const value = {
-    // Resumes
+  const importApplications = useCallback((rawOpportunities) => {
+    const now = Date.now();
+    const prepared = prepareOpportunityImport(rawOpportunities, applications, { now });
+    const importedOpportunities = backfillResumeNameSnapshots(
+      prepared.opportunities,
+      resumes
+    );
+
+    if (importedOpportunities.length > 0) {
+      setStorageError('');
+      setApplications(previous => [...previous, ...importedOpportunities]);
+    }
+    return {
+      imported: importedOpportunities.length,
+      skipped: prepared.skipped,
+      reassignedIds: prepared.reassignedIds
+    };
+  }, [applications, resumes]);
+
+  const restoreAllData = useCallback((data) => {
+    const now = Date.now();
+    const restoredResumes = (Array.isArray(data?.resumes) ? data.resumes : [])
+      .map(resume => normalizeResume(resume, { now }));
+    const restoredApplications = backfillResumeNameSnapshots(
+      migrateOpportunities(data?.opportunities, { now }),
+      restoredResumes
+    ).filter(opportunity => opportunity.company && opportunity.role);
+
+    setStorageError('');
+    setApplications(restoredApplications);
+    setResumes(restoredResumes);
+    return {
+      opportunities: restoredApplications.length,
+      resumes: restoredResumes.length
+    };
+  }, []);
+
+  const value = useMemo(() => ({
     resumes,
+    activeResumes,
     addResume,
-    deleteResume,
+    updateResume,
+    archiveResume,
+    restoreResume,
+    deleteResume: archiveResume,
     getResume,
-    maxResumes: MAX_RESUMES,
 
-    // Applications
+    opportunities: applications,
     applications,
     addApplication,
     updateApplication,
-    deleteApplication,
+    archiveApplication,
+    restoreApplication,
+    deleteApplication: archiveApplication,
     getApplication,
+    addTimelineNote,
     addSessionToApplication,
     deleteSessionFromApplication,
+    importApplications,
+    restoreAllData,
 
-    // State
-    isLoaded
-  };
+    isLoaded,
+    storageError,
+    storageWarnings,
+    clearStorageMessages
+  }), [
+    resumes,
+    activeResumes,
+    addResume,
+    updateResume,
+    archiveResume,
+    restoreResume,
+    getResume,
+    applications,
+    addApplication,
+    updateApplication,
+    archiveApplication,
+    restoreApplication,
+    getApplication,
+    addTimelineNote,
+    addSessionToApplication,
+    deleteSessionFromApplication,
+    importApplications,
+    restoreAllData,
+    isLoaded,
+    storageError,
+    storageWarnings,
+    clearStorageMessages
+  ]);
 
-  return (
-    <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useApp() {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider');
-  }
+  if (!context) throw new Error('useApp must be used within AppProvider');
   return context;
 }

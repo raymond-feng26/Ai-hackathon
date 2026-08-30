@@ -1,644 +1,270 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
-import { useInterview } from '../context/InterviewContext';
-import { analyzeResumeVsJD } from '../services/ai';
-import Button from './ui/Button';
-import Card from './ui/Card';
-import { formatDate, formatDateTime } from '../utils/dateFormatters';
-import { getRoundLabel } from '../utils/interviewRounds';
-import { STATUS_CONFIG } from '../utils/applicationStatus';
-import { getScoreColor, getOverallColor } from '../utils/scoring';
-import { aggregateFeedback } from '../utils/feedbackAggregator';
-import BackButton from './ui/BackButton';
+import { useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  ArrowTopRightOnSquareIcon,
   BriefcaseIcon,
-  CalendarIcon,
+  CalendarDaysIcon,
   DocumentTextIcon,
-  ClockIcon,
-  PlayIcon,
-  PencilIcon,
-  XMarkIcon,
-  CheckIcon,
-  ChevronRightIcon,
-  ChatBubbleLeftIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  LightBulbIcon,
-  TrashIcon
+  MapPinIcon,
+  PencilSquareIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
+import { useApp } from '../context/AppContext';
+import {
+  APPLICATION_CHANNEL_CONFIG,
+  DISCOVERY_SOURCE_CONFIG,
+  ELIGIBILITY_CONFIG,
+  ELIGIBILITY_REASON_CONFIG,
+  PRIORITY_CONFIG,
+  REFERRAL_STATUS_CONFIG,
+  STAGE_CONFIG,
+  TRACK_CONFIG,
+} from '../domain/opportunity';
+import { toSafeHttpUrl } from '../utils/opportunityData';
+import ActivityTimeline from './applications/ActivityTimeline';
+import SecondaryApplicationTools from './applications/SecondaryApplicationTools';
+import BackButton from './ui/BackButton';
+import Card from './ui/Card';
+
+const isValidTimestamp = (value) => {
+  if (value === null || value === undefined || value === '') return false;
+  return Number.isFinite(new Date(value).getTime());
+};
+
+const formatDateSafe = (value) => {
+  if (!isValidTimestamp(value)) return '—';
+  return new Date(value).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const formatDateTimeSafe = (value) => {
+  if (!isValidTimestamp(value)) return '—';
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const getDueTone = (value, endOfDay = false) => {
+  if (!isValidTimestamp(value)) return '';
+  const dueDate = new Date(value);
+  if (endOfDay) dueDate.setHours(23, 59, 59, 999);
+  const dueAt = dueDate.getTime();
+  const now = Date.now();
+  if (dueAt < now) return 'text-red-600';
+  if (dueAt - now <= 3 * 24 * 60 * 60 * 1000) return 'text-amber-600';
+  return '';
+};
+
+const getResumeDisplayName = (resume) => (
+  resume?.displayName || resume?.name || resume?.fileName || ''
+);
+
+function DetailItem({ label, children, className = '' }) {
+  return (
+    <div className={className}>
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</dt>
+      <dd className="mt-1 text-sm font-medium text-gray-800">{children || '—'}</dd>
+    </div>
+  );
+}
+
+function InfoCard({ title, icon, children }) {
+  const IconComponent = icon;
+  return (
+    <Card className="h-full">
+      <div className="mb-4 flex items-center gap-2">
+        <IconComponent className="h-5 w-5 text-primary" />
+        <h2 className="font-semibold text-gray-900">{title}</h2>
+      </div>
+      <dl className="space-y-4">{children}</dl>
+    </Card>
+  );
+}
 
 export default function ApplicationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getApplication, updateApplication, getResume, resumes, isLoaded, deleteSessionFromApplication } = useApp();
-  const { setResumeText, setJobDescription, setLinkedApplicationId, setAnalysis } = useInterview();
-  const [app, setApp] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedSessionIdx, setSelectedSessionIdx] = useState(null);
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    company: '',
-    role: '',
-    interviewDate: '',
-    jobDescription: '',
-    resumeId: '',
-    notes: '',
-    appliedAt: ''
-  });
+  const {
+    addTimelineNote,
+    deleteSessionFromApplication,
+    getApplication,
+    getResume,
+    isLoaded,
+    updateApplication,
+  } = useApp();
+
+  const application = getApplication(id);
 
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') setSelectedSessionIdx(null); };
-    if (selectedSessionIdx !== null) document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, [selectedSessionIdx]);
+    if (isLoaded && !application) navigate('/applications', { replace: true });
+  }, [application, isLoaded, navigate]);
 
-  const selectedSession = selectedSessionIdx !== null && app
-    ? app.sessions[selectedSessionIdx]
-    : null;
-
-  const sessionFeedback = useMemo(() => {
-    if (!selectedSession) return { strengths: [], weaknesses: [], suggestions: [] };
-    return aggregateFeedback(selectedSession.grades);
-  }, [selectedSession]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    const application = getApplication(id);
-    if (!application) {
-      navigate('/applications');
-    } else {
-      setApp(application);
-    }
-  }, [id, isLoaded, getApplication, navigate]);
-
-  if (!app) {
+  if (!application) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading application...</p>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-gray-500">Loading opportunity...</p>
         </div>
       </div>
     );
   }
 
-
-  const handleStatusChange = (newStatus) => {
-    updateApplication(id, { status: newStatus });
-    setApp(prev => ({ ...prev, status: newStatus }));
-  };
-
-  const handleEditClick = () => {
-    setEditForm({
-      company: app.company,
-      role: app.role,
-      interviewDate: app.interviewDate
-        ? new Date(app.interviewDate).toISOString().slice(0, 16)
-        : '',
-      jobDescription: app.jobDescription || '',
-      resumeId: app.resumeId || '',
-      notes: app.notes || '',
-      appliedAt: app.appliedAt
-        ? new Date(app.appliedAt).toISOString().slice(0, 16)
-        : ''
-    });
-    setIsEditing(true);
-  };
-
-  const handleEditSave = () => {
-    const updates = {
-      company: editForm.company,
-      role: editForm.role,
-      interviewDate: editForm.interviewDate ? new Date(editForm.interviewDate).getTime() : null,
-      jobDescription: editForm.jobDescription,
-      resumeId: editForm.resumeId || null,
-      notes: editForm.notes,
-      appliedAt: editForm.appliedAt ? new Date(editForm.appliedAt).getTime() : app.appliedAt
-    };
-    updateApplication(id, updates);
-    setApp(prev => ({ ...prev, ...updates }));
-    setIsEditing(false);
-  };
-
-  const handleEditCancel = () => {
-    setIsEditing(false);
-  };
-
-  const handleRunAnalysis = async () => {
-    const resume = getResume(app.resumeId);
-    if (!resume || !app.jobDescription) return;
-    setIsAnalyzing(true);
-    try {
-      const result = await analyzeResumeVsJD(resume.text, app.jobDescription);
-      const analysisWithTimestamp = { ...result, analyzedAt: Date.now() };
-      updateApplication(id, { analysis: analysisWithTimestamp });
-      setApp(prev => ({ ...prev, analysis: analysisWithTimestamp }));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleStartPractice = () => {
-    if (app.resumeId) {
-      const resume = getResume(app.resumeId);
-      if (resume) setResumeText(resume.text);
-    }
-    if (app.jobDescription) setJobDescription(app.jobDescription);
-    if (app.analysis) setAnalysis(app.analysis);
-    setLinkedApplicationId(id);
-    navigate('/setup');
-  };
-
-  const linkedResume = app.resumeId ? getResume(app.resumeId) : null;
-  const canPractice = app.jobDescription && app.resumeId && linkedResume;
-  const missingItems = [];
-  if (!app.jobDescription) missingItems.push('a job description');
-  if (!linkedResume) missingItems.push('a linked resume');
+  const linkedResume = application.resumeId ? getResume(application.resumeId) : null;
+  const resumeSnapshot = application.resumeNameSnapshot || getResumeDisplayName(linkedResume);
+  const currentResumeName = getResumeDisplayName(linkedResume);
+  const jobUrl = toSafeHttpUrl(application.jobUrl);
+  const stage = STAGE_CONFIG[application.stage] || { label: application.stage || 'Unknown', color: 'bg-gray-100 text-gray-700' };
+  const priority = PRIORITY_CONFIG[application.priority] || { label: application.priority || '—', color: 'bg-gray-100 text-gray-700' };
+  const track = TRACK_CONFIG[application.track] || { label: application.track || 'Unclassified' };
+  const eligibility = ELIGIBILITY_CONFIG[application.eligibility] || { label: application.eligibility || 'Unknown', color: 'bg-gray-100 text-gray-700' };
+  const eligibilityReason = ELIGIBILITY_REASON_CONFIG[application.eligibilityReason]?.label || 'None';
+  const referralStatus = REFERRAL_STATUS_CONFIG[application.referralStatus]?.label || 'None';
+  const discoverySource = DISCOVERY_SOURCE_CONFIG[application.discoverySource]?.label || 'Other';
+  const applicationChannel = APPLICATION_CHANNEL_CONFIG[application.applicationChannel]?.label || 'Not Applied';
 
   return (
-    <div className="min-h-screen py-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen px-4 py-12">
+      <div className="mx-auto max-w-6xl">
         <BackButton to="/applications" label="Back to Applications" />
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-8">
-          <div className="flex-1">
-            {isEditing ? (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={editForm.company}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, company: e.target.value }))}
-                  placeholder="Company name"
-                  className="text-2xl font-bold text-gray-900 border-2 border-gray-300 rounded-lg px-3 py-2 w-full focus:border-primary focus:outline-none"
-                />
-                <input
-                  type="text"
-                  value={editForm.role}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
-                  placeholder="Role"
-                  className="text-lg text-gray-600 border-2 border-gray-300 rounded-lg px-3 py-2 w-full focus:border-primary focus:outline-none"
-                />
-                <div>
-                  <label className="block text-sm text-gray-500 mb-1">Interview Date/Time</label>
-                  <input
-                    type="datetime-local"
-                    value={editForm.interviewDate}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, interviewDate: e.target.value }))}
-                    className="border-2 border-gray-300 rounded-lg px-3 py-2 focus:border-primary focus:outline-none"
-                  />
+        {application.archivedAt && (
+          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            This opportunity is archived. It remains available for historical reference.
+          </div>
+        )}
+
+        <header className="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
+                <BriefcaseIcon className="h-6 w-6 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="break-words text-3xl font-bold text-gray-900">{application.company || 'Unnamed company'}</h1>
+                <p className="mt-1 break-words text-lg text-gray-600">{application.role || 'Unnamed role'}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className={`rounded-full px-3 py-1 text-sm font-semibold ${stage.color}`}>{stage.label}</span>
+                  <span className={`rounded-full px-3 py-1 text-sm font-semibold ${priority.color}`}>{priority.label}</span>
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">{track.label}</span>
+                  <span className={`rounded-full px-3 py-1 text-sm font-medium ${eligibility.color}`}>{eligibility.label}</span>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-500 mb-1">Linked Resume</label>
-                  {resumes.length > 0 ? (
-                    <select
-                      value={editForm.resumeId}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, resumeId: e.target.value }))}
-                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:border-primary focus:outline-none"
-                    >
-                      <option value="">No resume linked</option>
-                      {resumes.map(resume => (
-                        <option key={resume.id} value={resume.id}>
-                          {resume.name} ({resume.fileName})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-500 text-sm">No resumes uploaded yet</span>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/resumes')}
-                        className="text-primary text-sm hover:underline"
-                      >
-                        Upload one
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 mb-1">Job Description</label>
-                  <textarea
-                    value={editForm.jobDescription}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, jobDescription: e.target.value }))}
-                    placeholder="Paste the job description here..."
-                    rows={6}
-                    className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:border-primary focus:outline-none resize-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 mb-1">Applied Date</label>
-                  <input
-                    type="datetime-local"
-                    value={editForm.appliedAt}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, appliedAt: e.target.value }))}
-                    className="border-2 border-gray-300 rounded-lg px-3 py-2 focus:border-primary focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 mb-1">Notes</label>
-                  <textarea
-                    value={editForm.notes}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Any additional notes..."
-                    rows={3}
-                    className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:border-primary focus:outline-none resize-none"
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button onClick={handleEditSave}>
-                    <CheckIcon className="w-5 h-5 mr-2 inline" />
-                    Save Changes
-                  </Button>
-                  <Button variant="outline" onClick={handleEditCancel}>
-                    Cancel
-                  </Button>
-                </div>
+              </div>
+            </div>
+
+            <Link
+              to={`/applications/${application.id}/edit`}
+              className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-primary px-4 py-2 font-medium text-primary transition-colors hover:bg-blue-50"
+            >
+              <PencilSquareIcon className="h-5 w-5" />
+              Edit
+            </Link>
+          </div>
+
+          {(application.eligibilityReason !== 'none' || application.eligibilityNotes) && (
+            <div className="mt-5 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+              <span className="font-semibold">Eligibility:</span>{' '}
+              {eligibilityReason}
+              {application.eligibilityNotes ? ` — ${application.eligibilityNotes}` : ''}
+            </div>
+          )}
+        </header>
+
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <InfoCard title="Job Information" icon={MapPinIcon}>
+            <DetailItem label="Job URL">
+              {jobUrl ? (
+                <a
+                  href={jobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                >
+                  Open job posting <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                </a>
+              ) : application.jobUrl ? (
+                <span className="break-all text-gray-500" title={application.jobUrl}>Invalid or unsupported URL</span>
+              ) : '—'}
+            </DetailItem>
+            <DetailItem label="Requisition ID">{application.requisitionId || '—'}</DetailItem>
+            <DetailItem label="Location">{application.location || '—'}</DetailItem>
+          </InfoCard>
+
+          <InfoCard title="Dates & Next Action" icon={CalendarDaysIcon}>
+            <DetailItem label="Deadline" className={getDueTone(application.deadlineAt, true)}>
+              {formatDateSafe(application.deadlineAt)}
+            </DetailItem>
+            <DetailItem label="Applied Date">{formatDateSafe(application.appliedAt)}</DetailItem>
+            <DetailItem label="Next Action" className={getDueTone(application.nextActionAt)}>
+              <span className="block">{application.nextAction || '—'}</span>
+              {isValidTimestamp(application.nextActionAt) && (
+                <span className="mt-0.5 block text-xs font-normal">{formatDateTimeSafe(application.nextActionAt)}</span>
+              )}
+            </DetailItem>
+          </InfoCard>
+
+          <InfoCard title="Source & Referral" icon={UserGroupIcon}>
+            <DetailItem label="Referral Status">{referralStatus}</DetailItem>
+            <DetailItem label="Referral Contact">{application.referralContact || '—'}</DetailItem>
+            <DetailItem label="Referral Requested">{formatDateSafe(application.referralRequestedAt)}</DetailItem>
+            <DetailItem label="Discovery / Channel">{discoverySource} / {applicationChannel}</DetailItem>
+          </InfoCard>
+
+          <InfoCard title="Submitted Resume" icon={DocumentTextIcon}>
+            <DetailItem label="Resume Snapshot">{resumeSnapshot || 'No resume recorded'}</DetailItem>
+            {linkedResume && (
+              <>
+                <DetailItem label="Library Status">{linkedResume.archivedAt ? 'Archived' : 'Active'}</DetailItem>
+                <DetailItem label="Original File">{linkedResume.fileName || '—'}</DetailItem>
+                {currentResumeName && resumeSnapshot && currentResumeName !== resumeSnapshot && (
+                  <DetailItem label="Current Library Name">{currentResumeName}</DetailItem>
+                )}
+              </>
+            )}
+            {!linkedResume && application.resumeId && (
+              <DetailItem label="Library Status">Resume no longer available</DetailItem>
+            )}
+          </InfoCard>
+        </div>
+
+        <ActivityTimeline opportunity={application} addTimelineNote={addTimelineNote} />
+
+        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">Job Description</h2>
+            {application.jobDescription ? (
+              <div className="max-h-96 overflow-y-auto rounded-lg bg-gray-50 p-4">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{application.jobDescription}</p>
               </div>
             ) : (
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <BriefcaseIcon className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900">{app.company}</h1>
-                  <p className="text-lg text-gray-600">{app.role}</p>
-                </div>
-                <button
-                  onClick={handleEditClick}
-                  className="p-2.5 text-gray-400 hover:text-primary transition-colors self-start -mt-0.5 -mr-2"
-                  title="Edit application"
-                  aria-label="Edit application"
-                >
-                  <PencilIcon className="w-5 h-5" />
-                </button>
-              </div>
-            )}
-          </div>
-          {!isEditing && (
-            <select
-              value={app.status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className={`px-4 py-2 rounded-lg font-medium border-0 cursor-pointer ${STATUS_CONFIG[app.status].color}`}
-            >
-              {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                <option key={key} value={key}>{config.label}</option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="flex items-center">
-            <CalendarIcon className="w-8 h-8 text-gray-400 mr-3" />
-            <div>
-              <p className="text-sm text-gray-500">Applied</p>
-              <p className="font-semibold">{formatDate(app.appliedAt)}</p>
-            </div>
-          </Card>
-
-          {app.interviewDate && (
-            <Card className="flex items-center">
-              <ClockIcon className="w-8 h-8 text-yellow-500 mr-3" />
-              <div>
-                <p className="text-sm text-gray-500">Interview</p>
-                <p className="font-semibold">{formatDateTime(app.interviewDate)}</p>
-              </div>
-            </Card>
-          )}
-
-          {linkedResume && (
-            <Card className="flex items-center min-w-0">
-              <DocumentTextIcon className="w-8 h-8 text-blue-500 mr-3 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500">Resume</p>
-                <p className="font-semibold truncate">{linkedResume.name}</p>
-              </div>
-            </Card>
-          )}
-        </div>
-
-        {/* Start Practice Button */}
-        <Card className="mb-8 bg-blue-50 border-2 border-blue-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-1">Interview Practice</h3>
-              <p className="text-sm text-gray-600">
-                {canPractice
-                  ? 'Practice with questions tailored to this job description'
-                  : `Add ${missingItems.join(' and ')} to get started`}
-              </p>
-            </div>
-            <Button onClick={handleStartPractice} disabled={!canPractice}>
-              <PlayIcon className="w-5 h-5 mr-2 inline" />
-              Start Practice
-            </Button>
-          </div>
-        </Card>
-
-        {/* Job Description */}
-        {app.jobDescription && (
-          <Card className="mb-6">
-            <h2 className="text-xl font-semibold mb-4">Job Description</h2>
-            <div className="bg-gray-50 p-4 rounded-lg max-h-64 overflow-y-auto">
-              <p className="text-gray-700 whitespace-pre-wrap text-sm">
-                {app.jobDescription}
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {/* Practice Sessions */}
-        <Card className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Practice Sessions</h2>
-          {app.sessions.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
-              No practice sessions yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {app.sessions.map((session, idx) => (
-                <div
-                  key={session.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`View session ${idx + 1}: ${getRoundLabel(session.round)}`}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => setSelectedSessionIdx(idx)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedSessionIdx(idx); } }}
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      Session {idx + 1}: {getRoundLabel(session.round)}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {formatDateTime(session.completedAt)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-2xl font-bold ${getScoreColor(session.score)}`}>
-                      {session.score.toFixed(1)}/10
-                    </span>
-                    <ChevronRightIcon className="w-5 h-5 text-gray-400" />
-                    <button
-                      aria-label="Delete session"
-                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); if (confirm('Are you sure you want to delete this practice session?')) { deleteSessionFromApplication(id, session.id); setApp(prev => ({ ...prev, sessions: prev.sessions.filter(s => s.id !== session.id) })); } }}
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Resume Analysis */}
-        {canPractice && (
-          <Card className="mb-8">
-            <button
-              className="w-full flex items-center justify-between"
-              onClick={() => setShowAnalysis(v => !v)}
-            >
-              <h2 className="text-xl font-semibold">Resume Analysis</h2>
-              <div className="flex items-center gap-3">
-                {app.analysis && (
-                  <span className={`text-xl font-bold ${getScoreColor(app.analysis.matchScore, true)}`}>
-                    {app.analysis.matchScore}% match
-                  </span>
-                )}
-                <ChevronRightIcon className={`w-5 h-5 text-gray-400 transition-transform ${showAnalysis ? 'rotate-90' : ''}`} />
-              </div>
-            </button>
-
-            {showAnalysis && (
-              <div className="mt-4">
-                {app.analysis ? (
-                  <div className="space-y-4">
-                    {/* Missing Keywords */}
-                    {app.analysis.missingKeywords?.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-gray-600 mb-2">Missing Keywords</p>
-                        <div className="flex flex-wrap gap-2">
-                          {app.analysis.missingKeywords.map((kw, i) => (
-                            <span key={i} className="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full">{kw}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {/* Strengths */}
-                    {app.analysis.strengths?.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-green-700 mb-2">Strengths</p>
-                        <ul className="space-y-2">
-                          {app.analysis.strengths.map((s, i) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                              <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {/* Suggested Emphasis */}
-                    {app.analysis.suggestedEmphasis?.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-blue-700 mb-2">Preparation Tips</p>
-                        <ul className="space-y-2">
-                          {app.analysis.suggestedEmphasis.map((tip, i) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                              <LightBulbIcon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                              {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {app.analysis.analyzedAt && (
-                      <p className="text-xs text-gray-400">Analyzed {formatDateTime(app.analysis.analyzedAt)}</p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-sm mb-3">No analysis yet for this application.</p>
-                )}
-
-                <Button
-                  variant="outline"
-                  onClick={handleRunAnalysis}
-                  disabled={isAnalyzing}
-                  className="mt-4"
-                >
-                  {isAnalyzing ? 'Analyzing…' : app.analysis ? 'Re-run Analysis' : 'Run Analysis'}
-                </Button>
-              </div>
+              <p className="text-sm text-gray-500">No job description saved.</p>
             )}
           </Card>
-        )}
 
-        {/* Notes */}
-        {app.notes && (
-          <Card className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Notes</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">{app.notes}</p>
+          <Card>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">Notes</h2>
+            {application.notes ? (
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{application.notes}</p>
+            ) : (
+              <p className="text-sm text-gray-500">No notes saved.</p>
+            )}
           </Card>
-        )}
+        </div>
 
+        <SecondaryApplicationTools
+          application={application}
+          getResume={getResume}
+          updateApplication={updateApplication}
+          deleteSessionFromApplication={deleteSessionFromApplication}
+        />
       </div>
-
-      {/* Session Detail Modal */}
-      {selectedSession && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedSessionIdx(null)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-gray-200">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  Session {selectedSessionIdx + 1}: {getRoundLabel(selectedSession.round)}
-                </h2>
-                <p className="text-sm text-gray-500">{formatDateTime(selectedSession.completedAt)}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`text-2xl font-bold ${getScoreColor(selectedSession.score)}`}>
-                  {selectedSession.score.toFixed(1)}/10
-                </span>
-                <button
-                  onClick={() => setSelectedSessionIdx(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label="Close session details"
-                >
-                  <XMarkIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            <div className="overflow-y-auto p-5 space-y-6">
-              {/* Overall Score */}
-              <Card className={`border-2 ${getOverallColor(selectedSession.score)}`}>
-                <div className="text-center">
-                  <div className={`text-5xl font-bold ${getScoreColor(selectedSession.score)} mb-1`}>
-                    {selectedSession.score.toFixed(1)}/10
-                  </div>
-                  <p className="text-gray-600 text-sm">
-                    {selectedSession.score >= 8 && "Excellent performance!"}
-                    {selectedSession.score >= 6 && selectedSession.score < 8 && "Good job! Focus on the improvement areas below."}
-                    {selectedSession.score < 6 && "Keep practicing! Review the feedback carefully."}
-                  </p>
-                </div>
-              </Card>
-
-              {/* Aggregated Feedback */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sessionFeedback.strengths.length > 0 && (
-                  <Card className="bg-green-50 border border-green-200">
-                    <div className="flex items-center mb-3">
-                      <CheckCircleIcon className="w-5 h-5 text-green-600 mr-2" />
-                      <h3 className="font-semibold text-green-800">What You Did Well</h3>
-                    </div>
-                    <ul className="space-y-1">
-                      {sessionFeedback.strengths.map((s, i) => (
-                        <li key={i} className="text-green-900 text-sm flex items-start">
-                          <span className="text-green-600 mr-2">-</span>{s}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                )}
-                {sessionFeedback.weaknesses.length > 0 && (
-                  <Card className="bg-orange-50 border border-orange-200">
-                    <div className="flex items-center mb-3">
-                      <ExclamationTriangleIcon className="w-5 h-5 text-orange-600 mr-2" />
-                      <h3 className="font-semibold text-orange-800">Areas to Improve</h3>
-                    </div>
-                    <ul className="space-y-1">
-                      {sessionFeedback.weaknesses.map((w, i) => (
-                        <li key={i} className="text-orange-900 text-sm flex items-start">
-                          <span className="text-orange-600 mr-2">-</span>{w}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                )}
-              </div>
-              {sessionFeedback.suggestions.length > 0 && (
-                <Card className="bg-blue-50 border border-blue-200">
-                  <div className="flex items-center mb-3">
-                    <LightBulbIcon className="w-5 h-5 text-blue-600 mr-2" />
-                    <h3 className="font-semibold text-blue-800">Try These Tips Next Time</h3>
-                  </div>
-                  <div className="space-y-2">
-                    {sessionFeedback.suggestions.map((s, i) => (
-                      <div key={i} className="flex items-start bg-white rounded-lg p-2 border border-blue-100">
-                        <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2 flex-shrink-0">{i + 1}</span>
-                        <p className="text-gray-700 text-sm italic">{s}</p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* Detailed Q&A */}
-              <h3 className="text-lg font-semibold text-gray-900">Detailed Question Review</h3>
-              {selectedSession.questions.map((question, idx) => (
-                <Card key={idx} className="border-l-4 border-primary">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-gray-900 flex-1">
-                      Q{idx + 1}: {question}
-                    </h3>
-                    <span className={`text-xl font-bold ${getScoreColor(selectedSession.grades[idx].score)} ml-4`}>
-                      {selectedSession.grades[idx].score}/10
-                    </span>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-center mb-2">
-                      <ChatBubbleLeftIcon className="w-4 h-4 text-gray-500 mr-2" />
-                      <span className="text-sm font-medium text-gray-600">Your Response</span>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded">
-                      <p className="text-gray-700 text-sm">{selectedSession.answers[idx]}</p>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-gray-700 mb-3">{selectedSession.grades[idx].feedback}</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedSession.grades[idx].strengths && selectedSession.grades[idx].strengths.length > 0 && (
-                      <div className="bg-green-50 rounded p-2">
-                        <p className="text-xs font-medium text-green-700 mb-1">Strengths</p>
-                        <ul className="text-xs text-green-900 space-y-1">
-                          {selectedSession.grades[idx].strengths.slice(0, 2).map((s, i) => (
-                            <li key={i}>- {s}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {selectedSession.grades[idx].weaknesses && selectedSession.grades[idx].weaknesses.length > 0 && (
-                      <div className="bg-orange-50 rounded p-2">
-                        <p className="text-xs font-medium text-orange-700 mb-1">To Improve</p>
-                        <ul className="text-xs text-orange-900 space-y-1">
-                          {selectedSession.grades[idx].weaknesses.slice(0, 2).map((w, i) => (
-                            <li key={i}>- {w}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function analyzeResumeVsJD(resumeText, jobDescription) {
+export async function analyzeResumeVsJD(_resumeText, _jobDescription) {
   await delay(1500);
 
   return {
@@ -42,7 +42,7 @@ export async function analyzeResumeVsJD(resumeText, jobDescription) {
   };
 }
 
-export async function generateQuestions(resumeText, jobDescription, round) {
+export async function generateQuestions(_resumeText, _jobDescription, round) {
   await delay(1200);
 
   const questionsByRound = {
@@ -72,7 +72,7 @@ export async function generateQuestions(resumeText, jobDescription, round) {
   return questionsByRound[round] || questionsByRound.first;
 }
 
-export async function gradeAnswer(question, answer, round) {
+export async function gradeAnswer(_question, _answer, _round) {
   await delay(1000);
 
   const scores = [6, 7, 7, 8, 8, 9];
@@ -153,7 +153,7 @@ export async function gradeAnswer(question, answer, round) {
   };
 }
 
-export async function analyzeInterview(audioBase64, mimeType) {
+export async function analyzeInterview(_audioBase64, _mimeType) {
   await delay(2000);
   return {
     transcriptionSummary: "The candidate discussed their software engineering background, focusing on React and Node.js projects. They described a challenging team leadership experience and how they handled a production outage. The interviewer asked about career goals and the candidate expressed interest in growing into a senior engineering role.",

@@ -65,6 +65,7 @@ export function InterviewProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useInterview() {
   const context = useContext(InterviewContext);
   if (!context) {

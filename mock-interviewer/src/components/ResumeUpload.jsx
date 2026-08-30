@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterview } from '../context/InterviewContext';
 import { useApp } from '../context/AppContext';
+import { RESUME_TARGET_TRACK_CONFIG } from '../domain/resume';
 import { extractTextFromResume } from '../services/resumeParser';
 import { analyzeResumeVsJD } from '../services/ai';
 import FileUpload from './ui/FileUpload';
@@ -14,7 +15,7 @@ import { DocumentTextIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 export default function ResumeUpload() {
   const navigate = useNavigate();
   const { setResumeText, setJobDescription, setAnalysis, setResumeId, setLinkedApplicationId } = useInterview();
-  const { resumes, addResume, maxResumes } = useApp();
+  const { activeResumes = [], addResume } = useApp();
 
   const [file, setFile] = useState(null);
   const [jd, setJd] = useState('');
@@ -55,7 +56,7 @@ export default function ResumeUpload() {
 
       if (selectedResumeId) {
         // Use saved resume
-        const savedResume = resumes.find(r => r.id === selectedResumeId);
+        const savedResume = activeResumes.find(r => r.id === selectedResumeId);
         if (!savedResume) {
           throw new Error('Selected resume not found');
         }
@@ -65,8 +66,8 @@ export default function ResumeUpload() {
         // Extract text from uploaded file
         resumeText = await extractTextFromResume(file);
 
-        // Save to library if checkbox is checked and space available
-        if (saveToLibrary && resumes.length < maxResumes) {
+        // Save to the resume library when requested. The library has no capacity limit.
+        if (saveToLibrary) {
           currentResumeId = addResume(resumeText, file.name);
         }
       }
@@ -101,11 +102,11 @@ export default function ResumeUpload() {
         </p>
 
         {/* Saved Resumes */}
-        {resumes.length > 0 && (
+        {activeResumes.length > 0 && (
           <Card className="mb-6">
             <h2 className="text-xl font-semibold mb-4">Your Saved Resumes</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {resumes.map(resume => (
+              {activeResumes.map(resume => (
                 <button
                   key={resume.id}
                   onClick={() => handleSelectSavedResume(resume.id)}
@@ -119,8 +120,15 @@ export default function ResumeUpload() {
                     <DocumentTextIcon className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{resume.name}</p>
+                    <p className="font-medium text-gray-900 truncate">
+                      {resume.displayName || resume.name || resume.fileName}
+                    </p>
                     <p className="text-xs text-gray-500 truncate">{resume.fileName}</p>
+                    {RESUME_TARGET_TRACK_CONFIG[resume.targetTrack] && (
+                      <p className="text-xs text-gray-400 truncate mt-0.5">
+                        {RESUME_TARGET_TRACK_CONFIG[resume.targetTrack].label}
+                      </p>
+                    )}
                   </div>
                   {selectedResumeId === resume.id && (
                     <CheckCircleIcon className="w-6 h-6 text-primary flex-shrink-0" />
@@ -139,10 +147,10 @@ export default function ResumeUpload() {
         {/* Upload New Resume */}
         <Card className="mb-6">
           <h2 className="text-xl font-semibold mb-4">
-            {resumes.length > 0 ? 'Or Upload New Resume' : 'Resume (PDF or DOCX)'}
+            {activeResumes.length > 0 ? 'Or Upload New Resume' : 'Resume (PDF or DOCX)'}
           </h2>
           <FileUpload onFileSelect={handleFileSelect} />
-          {file && resumes.length < maxResumes && (
+          {file && (
             <label className="flex items-center mt-4 cursor-pointer">
               <input
                 type="checkbox"
@@ -151,7 +159,7 @@ export default function ResumeUpload() {
                 className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
               />
               <span className="ml-2 text-sm text-gray-600">
-                Save to my resume library ({resumes.length}/{maxResumes} used)
+                Save to my resume library
               </span>
             </label>
           )}

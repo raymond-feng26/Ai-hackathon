@@ -12,6 +12,7 @@ import ApplicationTracker from './components/ApplicationTracker';
 import AddApplication from './components/AddApplication';
 import ApplicationDetails from './components/ApplicationDetails';
 import RecordingAnalysis from './components/RecordingAnalysis';
+import NotFound from './components/NotFound';
 
 function App() {
   return (
@@ -29,8 +30,10 @@ function App() {
             <Route path="/resumes" element={<ResumeDeck />} />
             <Route path="/applications" element={<ApplicationTracker />} />
             <Route path="/applications/new" element={<AddApplication />} />
+            <Route path="/applications/:id/edit" element={<AddApplication />} />
             <Route path="/applications/:id" element={<ApplicationDetails />} />
             <Route path="/analyze-recording" element={<RecordingAnalysis />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
       </InterviewProvider>

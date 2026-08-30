@@ -3,8 +3,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 export default function useSpeechToText() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [error, setError] = useState(null);
-  const [isSupported, setIsSupported] = useState(true);
+  const [error, setError] = useState(() => (
+    typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
+      ? null
+      : 'Speech recognition is not supported in this browser. Try Chrome or Edge.'
+  ));
+  const [isSupported] = useState(() => (
+    typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
+  ));
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -12,9 +18,7 @@ export default function useSpeechToText() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setIsSupported(false);
-      setError('Speech recognition is not supported in this browser. Try Chrome or Edge.');
-      return;
+      return undefined;
     }
 
     // Initialize recognition
@@ -51,14 +55,11 @@ export default function useSpeechToText() {
 
     recognition.onresult = (event) => {
       let finalTranscript = '';
-      let interimTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
           finalTranscript += result[0].transcript;
-        } else {
-          interimTranscript += result[0].transcript;
         }
       }
 

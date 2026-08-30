@@ -1,201 +1,191 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { STATUS_CONFIG } from '../utils/applicationStatus';
-import Button from './ui/Button';
-import Card from './ui/Card';
-import TextArea from './ui/TextArea';
-import ErrorAlert from './ui/ErrorAlert';
+import { findOpportunityDuplicates } from '../utils/opportunityData';
 import BackButton from './ui/BackButton';
+import OpportunityForm from './applications/OpportunityForm';
+
+const duplicateReasonLabel = reason => {
+  if (reason === 'job_url') return 'same canonical job URL';
+  if (reason === 'company_requisition_id') return 'same company and requisition ID';
+  return reason;
+};
 
 export default function AddApplication() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addApplication, addSessionToApplication, resumes } = useApp();
-  const prefill = location.state || {};
-
-  const [formData, setFormData] = useState({
-    company: '',
-    role: '',
-    jobDescription: prefill.jobDescription || '',
-    resumeId: prefill.resumeId || '',
-    status: 'sent',
-    interviewDate: '',
-    notes: ''
-  });
+  const { id } = useParams();
+  const isEditing = Boolean(id);
+  const [newRecordNow] = useState(() => Date.now());
+  const [duplicateCheck, setDuplicateCheck] = useState(null);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const {
+    getApplication,
+    addApplication,
+    updateApplication,
+    addSessionToApplication,
+    applications,
+    resumes,
+    isLoaded
+  } = useApp();
+
+  const application = isEditing ? getApplication(id) : null;
+  const prefill = useMemo(() => (
+    location.state && typeof location.state === 'object' ? location.state : {}
+  ), [location.state]);
+
+  const initialValues = useMemo(() => {
+    if (application) return application;
+    return {
+      ...prefill,
+      stage: prefill.stage || 'saved',
+      jobDescription: prefill.jobDescription || '',
+      resumeId: prefill.resumeId || null,
+      discoveredAt: prefill.discoveredAt ?? newRecordNow,
+      lastActivityAt: prefill.lastActivityAt ?? newRecordNow
+    };
+  }, [application, newRecordNow, prefill]);
+
+  const persistOpportunity = async values => {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      let applicationId = id;
+      if (isEditing) {
+        updateApplication(id, values);
+      } else {
+        const analysis = prefill.analysis
+          ? {
+              ...prefill.analysis,
+              analyzedAt: prefill.analysis.analyzedAt ?? Date.now()
+            }
+          : null;
+        applicationId = addApplication({ ...values, analysis });
+      }
+
+      if (prefill.pendingSession) {
+        addSessionToApplication(applicationId, prefill.pendingSession);
+      }
+
+      setDuplicateCheck(null);
+      navigate(`/applications/${applicationId}`, { replace: isEditing });
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not save this opportunity.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async values => {
+    setError('');
+    const matches = findOpportunityDuplicates(values, applications, { excludeId: id });
+    if (matches.length > 0) {
+      setDuplicateCheck({ values, matches });
+      return;
+    }
+    await persistOpportunity(values);
+  };
+
+  const handleFormChange = () => {
+    setDuplicateCheck(null);
     setError('');
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen px-4 py-12">
+        <div className="mx-auto max-w-5xl rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500">
+          Loading opportunity…
+        </div>
+      </div>
+    );
+  }
 
-    if (!formData.company.trim()) {
-      setError('Company name is required');
-      return;
-    }
-    if (!formData.role.trim()) {
-      setError('Role/Position is required');
-      return;
-    }
-
-    const appId = addApplication({
-      company: formData.company.trim(),
-      role: formData.role.trim(),
-      jobDescription: formData.jobDescription.trim(),
-      resumeId: formData.resumeId || null,
-      status: formData.status,
-      interviewDate: formData.interviewDate ? new Date(formData.interviewDate).getTime() : null,
-      notes: formData.notes.trim(),
-      analysis: prefill.analysis ? { ...prefill.analysis, analyzedAt: Date.now() } : null
-    });
-
-    if (prefill.pendingSession) {
-      addSessionToApplication(appId, prefill.pendingSession);
-    }
-
-    navigate(`/applications/${appId}`);
-  };
+  if (isEditing && !application) {
+    return (
+      <div className="min-h-screen px-4 py-12">
+        <div className="mx-auto max-w-2xl">
+          <BackButton to="/applications" label="Back to Applications" />
+          <div className="mt-6 rounded-lg border border-red-200 bg-white p-8 text-center shadow-sm">
+            <h1 className="text-2xl font-semibold text-gray-900">Opportunity not found</h1>
+            <p className="mt-2 text-gray-600">It may have been removed or the link may be invalid.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <BackButton label="Back" />
+    <div className="min-h-screen px-4 py-10">
+      <div className="mx-auto max-w-5xl">
+        <BackButton
+          to={isEditing ? `/applications/${id}` : undefined}
+          label={isEditing ? 'Back to Opportunity' : 'Back'}
+        />
 
-        <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
-          New Application
-        </h1>
-        <p className="text-gray-600 mb-8 text-center">
-          Track a new job application
-        </p>
+        <div className="mb-7 mt-4">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            {isEditing ? 'Edit Opportunity' : 'New Opportunity'}
+          </h1>
+          <p className="mt-2 text-gray-600">
+            {isEditing
+              ? 'Update fit, eligibility, dates, materials, and your next action.'
+              : 'Add what you know now. Unknown details can stay empty.'}
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <Card className="mb-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Company Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  placeholder="e.g., Google"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Role / Position <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  placeholder="e.g., Software Engineer"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition-colors"
-                >
-                  {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                    <option key={key} value={key}>{config.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Interview Date (if scheduled)
-                </label>
-                <input
-                  type="datetime-local"
-                  name="interviewDate"
-                  value={formData.interviewDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Link Resume (optional)
-                </label>
-                {resumes.length > 0 ? (
-                  <select
-                    name="resumeId"
-                    value={formData.resumeId}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition-colors"
-                  >
-                    <option value="">No resume linked</option>
-                    {resumes.map(resume => (
-                      <option key={resume.id} value={resume.id}>
-                        {resume.name} ({resume.fileName})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-500">No resumes uploaded yet</span>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/resumes')}
-                      className="text-primary hover:underline"
-                    >
-                      Upload one
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <TextArea
-                label="Job Description"
-                name="jobDescription"
-                value={formData.jobDescription}
-                onChange={handleChange}
-                placeholder="Paste the job description here for interview prep..."
-                rows={6}
-              />
-
-              <TextArea
-                label="Notes"
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                placeholder="Any additional notes..."
-                rows={3}
-              />
+        {duplicateCheck && (
+          <section className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4" aria-labelledby="duplicate-warning-title">
+            <h2 id="duplicate-warning-title" className="font-semibold text-amber-900">
+              Possible duplicate found
+            </h2>
+            <p className="mt-1 text-sm text-amber-800">
+              Review these existing opportunities before saving another copy:
+            </p>
+            <ul className="mt-3 space-y-2 text-sm text-amber-900">
+              {duplicateCheck.matches.map(match => (
+                <li key={match.opportunity.id} className="rounded-md bg-white/70 px-3 py-2">
+                  <span className="font-medium">{match.opportunity.company} — {match.opportunity.role}</span>
+                  <span className="ml-2 text-xs text-amber-700">
+                    ({match.reasons.map(duplicateReasonLabel).join(', ')})
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setDuplicateCheck(null)}
+                disabled={isSubmitting}
+                className="rounded-md border border-amber-400 bg-white px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+              >
+                Review details
+              </button>
+              <button
+                type="button"
+                onClick={() => persistOpportunity(duplicateCheck.values)}
+                disabled={isSubmitting}
+                className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Saving…' : 'Save anyway'}
+              </button>
             </div>
-          </Card>
+          </section>
+        )}
 
-          <ErrorAlert message={error} />
-
-          <div className="flex gap-4 justify-center">
-            <Button variant="outline" type="button" onClick={() => navigate(-1)}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Save Application
-            </Button>
-          </div>
-        </form>
+        <OpportunityForm
+          key={id || 'new'}
+          initialValues={initialValues}
+          resumes={resumes}
+          onSubmit={handleSubmit}
+          onCancel={() => navigate(-1)}
+          onChange={handleFormChange}
+          submitLabel={isEditing ? 'Save Changes' : 'Create Opportunity'}
+          isSubmitting={isSubmitting}
+          error={error}
+        />
       </div>
     </div>
   );
